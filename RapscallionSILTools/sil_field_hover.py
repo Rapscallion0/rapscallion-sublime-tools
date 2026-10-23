@@ -239,6 +239,116 @@ class SilFieldHoverListener(sublime_plugin.EventListener):
         except (IndexError, Exception):
             view.erase_status("sil_col_indicator")
 
+def show_field_popup(view, point, col_index, field_name, raw_val):
+    """Renders the styled field context card tooltip at the specified point."""
+    try:
+        val_trimmed = raw_val.strip() if raw_val else ""
+
+        has_quotes = (
+            (val_trimmed.startswith("'") and val_trimmed.endswith("'") and len(val_trimmed) >= 2) or
+            (val_trimmed.startswith('"') and val_trimmed.endswith('"') and len(val_trimmed) >= 2)
+        )
+        clean_val = val_trimmed[1:-1] if has_quotes else val_trimmed
+
+        safe_col = str(col_index + 1)
+        safe_field = html.escape(field_name)
+        column_color = get_column_color(view, col_index)
+
+        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+        show_val = settings.get("hover_show_value", True)
+        max_len = settings.get("hover_max_value_length", 80)
+
+        if show_val:
+            display_val = clean_val if clean_val else "(empty)"
+            if max_len > 0 and len(display_val) > max_len:
+                display_val = display_val[:max_len] + "..."
+            val_style = f"color: {column_color};" if clean_val else "color: #7f848e; font-style: italic;"
+            val_html = f'<div class="val" style="{val_style}">{html.escape(display_val)}</div>'
+        else:
+            val_html = ""
+
+        popup_html = f"""
+        <body id="sil-hover">
+            <style>
+                div.card {{
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+                    padding: 5px 9px;
+                    background-color: #21252b;
+                    border: 1px solid #3b4048;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }}
+                .header {{
+                    margin-bottom: 2px;
+                }}
+                b.col-title {{
+                    color: {column_color};
+                    margin-right: 4px;
+                }}
+                span.field-name {{
+                    color: #c8ccd4;
+                    font-weight: 500;
+                }}
+                div.val {{
+                    font-weight: bold;
+                    margin-top: 3px;
+                }}
+            </style>
+            <div class="card">
+                <div class="header">
+                    <b class="col-title">Col {safe_col}:</b><span class="field-name">{safe_field}</span>
+                </div>
+                {val_html}
+            </div>
+        </body>
+        """
+
+        view.show_popup(
+            popup_html,
+            location=point,
+            flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+            max_width=450
+        )
+    except Exception as e:
+        print(f"[Rapscallion Tools: SIL] Error in show_field_popup: {e}")
+
+
+class SilFieldHoverListener(sublime_plugin.EventListener):
+    def on_close(self, view):
+        CACHE_HEADERS.pop(view.id(), None)
+
+    def on_selection_modified_async(self, view):
+        if not is_sil_or_csv_view(view):
+            view.erase_status("sil_col_indicator")
+            return
+
+        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+        if not settings.get("status_bar_column_info", True):
+            view.erase_status("sil_col_indicator")
+            return
+
+        sel = view.sel()
+        if not sel or len(sel) == 0:
+            view.erase_status("sil_col_indicator")
+            return
+
+        try:
+            pt = sel[0].b
+            col_idx, field_name, _ = parse_row_at_point(view, pt)
+            if col_idx is not None:
+                view.set_status("sil_col_indicator", f"Col {col_idx + 1}: {field_name}")
+            else:
+                tab_name = view.name() or ""
+                file_name = view.file_name() or ""
+                if "Results.csv" in tab_name or file_name.lower().endswith(".csv"):
+                    c_idx, c_name = parse_csv_column_at_point(view, pt)
+                    if c_idx is not None:
+                        view.set_status("sil_col_indicator", f"Col {c_idx + 1}: {c_name}")
+                        return
+                view.erase_status("sil_col_indicator")
+        except (IndexError, Exception):
+            view.erase_status("sil_col_indicator")
+
     def on_hover(self, view, point, hover_zone):
         try:
             if hover_zone != sublime.HOVER_TEXT:
@@ -256,71 +366,7 @@ class SilFieldHoverListener(sublime_plugin.EventListener):
                 return
 
             _, _, raw_val = matched_token
-            val_trimmed = raw_val.strip()
-
-            has_quotes = (
-                (val_trimmed.startswith("'") and val_trimmed.endswith("'") and len(val_trimmed) >= 2) or
-                (val_trimmed.startswith('"') and val_trimmed.endswith('"') and len(val_trimmed) >= 2)
-            )
-            clean_val = val_trimmed[1:-1] if has_quotes else val_trimmed
-
-            safe_col = str(col_index + 1)
-            safe_field = html.escape(field_name)
-            column_color = get_column_color(view, col_index)
-
-            show_val = settings.get("hover_show_value", True)
-            max_len = settings.get("hover_max_value_length", 80)
-
-            if show_val:
-                display_val = clean_val
-                if max_len > 0 and len(display_val) > max_len:
-                    display_val = display_val[:max_len] + "..."
-                val_html = f'<div class="val" style="color: {column_color};">{html.escape(display_val)}</div>'
-            else:
-                val_html = ""
-
-            popup_html = f"""
-            <body id="sil-hover">
-                <style>
-                    div.card {{
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-                        padding: 5px 9px;
-                        background-color: #21252b;
-                        border: 1px solid #3b4048;
-                        border-radius: 4px;
-                        font-size: 11px;
-                    }}
-                    .header {{
-                        margin-bottom: 2px;
-                    }}
-                    b.col-title {{
-                        color: #61afef;
-                        margin-right: 4px;
-                    }}
-                    span.field-name {{
-                        color: #c8ccd4;
-                        font-weight: 500;
-                    }}
-                    div.val {{
-                        font-weight: bold;
-                        margin-top: 3px;
-                    }}
-                </style>
-                <div class="card">
-                    <div class="header">
-                        <b class="col-title">Col {safe_col}:</b><span class="field-name">{safe_field}</span>
-                    </div>
-                    {val_html}
-                </div>
-            </body>
-            """
-
-            view.show_popup(
-                popup_html,
-                location=point,
-                flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-                max_width=450
-            )
+            show_field_popup(view, point, col_index, field_name, raw_val)
         except Exception as e:
             print(f"[Rapscallion Tools: SIL] Error in on_hover: {e}")
 

@@ -8,12 +8,13 @@ import time
 import threading
 
 try:
-    from .sil_field_hover import parse_row_at_point, parse_csv_column_at_point, get_header_fields, is_sil_or_csv_view
+    from .sil_field_hover import parse_row_at_point, parse_csv_column_at_point, get_header_fields, is_sil_or_csv_view, show_field_popup
 except Exception:
     parse_row_at_point = None
     parse_csv_column_at_point = None
     get_header_fields = None
     is_sil_or_csv_view = lambda view: False
+    show_field_popup = None
 
 ACTIVE_COMPLETIONS = {
     "columns": [],
@@ -1057,21 +1058,38 @@ class SilGotoColumnCommand(sublime_plugin.TextCommand):
                 return
 
             col_name = headers[idx]
-            # Jump to column on target_line
             line_str = view.substr(target_line)
             line_spans = extract_row_tokens(line_str)
 
             if line_spans and idx < len(line_spans):
-                start_offset, end_offset, _ = line_spans[idx]
-                col_pt = target_line.begin() + start_offset
+                start_offset, end_offset, tok_text = line_spans[idx]
+                col_start = target_line.begin() + start_offset
+                col_end = target_line.begin() + end_offset
+
+                settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+                select_inner = settings.get("goto_column_select_inner_value", False)
+                if select_inner and len(tok_text) >= 2 and (
+                    (tok_text.startswith("'") and tok_text.endswith("'")) or
+                    (tok_text.startswith('"') and tok_text.endswith('"'))
+                ):
+                    sel_region = sublime.Region(col_start + 1, col_end - 1)
+                else:
+                    sel_region = sublime.Region(col_start, col_end)
+
                 view.sel().clear()
-                view.sel().add(sublime.Region(col_pt, col_pt))
-                view.show(col_pt)
-                sublime.status_message(f"Rapscallion Tools: SIL - Jumped to Col {idx + 1}: {col_name}")
+                view.sel().add(sel_region)
+                view.show_at_center(sel_region)
+                sublime.status_message(f"Rapscallion Tools: SIL - Selected Col {idx + 1}: {col_name}")
+
+                if settings.get("goto_column_show_popup", True) and show_field_popup:
+                    sublime.set_timeout(
+                        lambda: show_field_popup(view, col_start, idx, col_name, tok_text),
+                        80
+                    )
             else:
                 view.sel().clear()
                 view.sel().add(target_line.begin())
-                view.show(target_line.begin())
+                view.show_at_center(target_line.begin())
                 sublime.status_message(f"Rapscallion Tools: SIL - Selected Col {idx + 1}: {col_name}")
 
         window.show_quick_panel(items, _on_col_selected, flags=sublime.MONOSPACE_FONT)

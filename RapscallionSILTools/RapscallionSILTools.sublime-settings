@@ -31,6 +31,15 @@
     ],
 
     // =========================================================================
+    // Go to Column Navigation & Selection
+    // =========================================================================
+    // Automatically display the field context card popup above the highlighted cell
+    "goto_column_show_popup": true,
+
+    // If true, selects only inner content ('value' -> value); if false, includes quotes
+    "goto_column_select_inner_value": false,
+
+    // =========================================================================
     // Ingestion & Async Engine Options
     // =========================================================================
     // Parse files and initialize SQLite on a background worker thread
