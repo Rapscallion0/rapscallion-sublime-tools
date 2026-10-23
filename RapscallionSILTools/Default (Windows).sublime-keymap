@@ -1,3 +1,4 @@
 [
-  { "keys": ["alt+q"], "command": "sil_sqlite_query" }
+  { "keys": ["alt+q"], "command": "sil_sqlite_query" },
+  { "keys": ["alt+f"], "command": "sil_column_frequency" }
 ]

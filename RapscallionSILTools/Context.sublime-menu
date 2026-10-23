@@ -1,0 +1,15 @@
+[
+    { "caption": "-" },
+    {
+        "caption": "Rapscallion Tools: Query with SQLite (Alt+Q)",
+        "command": "sil_sqlite_query"
+    },
+    {
+        "caption": "Rapscallion Tools: Frequency Analysis on Column (Alt+F)",
+        "command": "sil_column_frequency"
+    },
+    {
+        "caption": "Rapscallion Tools: Toggle Field Hover",
+        "command": "sil_toggle_hover"
+    }
+]

@@ -12,6 +12,10 @@
         "command": "sil_sqlite_query"
     },
     {
+        "caption": "Rapscallion Tools: SIL - Frequency Analysis on Column",
+        "command": "sil_column_frequency"
+    },
+    {
         "caption": "Rapscallion Tools: SIL - Toggle Field Hover",
         "command": "sil_toggle_hover"
     },
