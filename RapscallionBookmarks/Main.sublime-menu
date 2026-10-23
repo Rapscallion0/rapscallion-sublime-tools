@@ -1,0 +1,65 @@
+[
+    {
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "id": "preferences",
+        "children": [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "Rapscallion Tools",
+                        "id": "rapscallion-tools",
+                        "children": [
+                            {
+                                "caption": "Bookmarks",
+                                "children": [
+                                    {
+                                        "caption": "Quick Panel (Alt+B)",
+                                        "command": "rapscallion_quick_bookmarks"
+                                    },
+                                    {
+                                        "caption": "Toggle Bottom Panel (Alt+Shift+B)",
+                                        "command": "rapscallion_toggle_panel"
+                                    },
+                                    {
+                                        "caption": "Add or Edit Bookmark (Ctrl+F2)",
+                                        "command": "rapscallion_set_bookmark"
+                                    },
+                                    {
+                                        "caption": "-"
+                                    },
+                                    {
+                                        "caption": "Toggle Side Panel (Legacy)",
+                                        "command": "rapscallion_toggle_side_panel"
+                                    },
+                                    {
+                                        "caption": "-"
+                                    },
+                                    {
+                                        "caption": "Settings",
+                                        "command": "edit_settings",
+                                        "args": {
+                                            "base_file": "${packages}/RapscallionBookmarks/RapscallionBookmarks.sublime-settings",
+                                            "default": "{\n    $0\n}\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Key Bindings",
+                                        "command": "edit_settings",
+                                        "args": {
+                                            "base_file": "${packages}/RapscallionBookmarks/Default (Windows).sublime-keymap",
+                                            "default": "[\n    $0\n]\n"
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

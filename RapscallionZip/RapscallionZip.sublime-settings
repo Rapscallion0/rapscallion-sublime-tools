@@ -1,0 +1,7 @@
+{
+    "archive_ignored_patterns": [
+        "__MACOSX/*",
+        "*.DS_Store",
+        "Thumbs.db"
+    ]
+}

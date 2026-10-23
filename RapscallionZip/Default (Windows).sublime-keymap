@@ -1,0 +1,28 @@
+[
+    {
+        "keys": [
+            "enter"
+        ],
+        "command": "rapscallion_activate_zip_item",
+        "context": [
+            {
+                "key": "setting.is_rapscallion_zip_view",
+                "operator": "equal",
+                "operand": true
+            }
+        ]
+    },
+    {
+        "keys": [
+            "ctrl+f"
+        ],
+        "command": "rapscallion_filter_zip",
+        "context": [
+            {
+                "key": "setting.is_rapscallion_zip_view",
+                "operator": "equal",
+                "operand": true
+            }
+        ]
+    }
+]

@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Sublime Text cache & session artifacts
+*.sublime-workspace
+*.sublime-session
+*.cache
+*.rcache
+
+# Temporary & Scratch files
+scratch/
+temp/
+*.tmp
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / Agent specific configs
+mcp_config.json

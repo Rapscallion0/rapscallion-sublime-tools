@@ -1,0 +1,43 @@
+[
+    {
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "id": "preferences",
+        "children": [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "Rapscallion Tools",
+                        "id": "rapscallion-tools",
+                        "children": [
+                            {
+                                "caption": "Ticket Notes",
+                                "children": [
+                                    {
+                                        "caption": "Settings",
+                                        "command": "edit_settings",
+                                        "args": {
+                                            "base_file": "${packages}/RapscallionNotes/RapscallionNotes.sublime-settings",
+                                            "default": "{\n    $0\n}\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Edit Template",
+                                        "command": "edit_rapscallion_template"
+                                    },
+                                    {
+                                        "caption": "Create or Open Ticket Note",
+                                        "command": "create_ticket_note"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

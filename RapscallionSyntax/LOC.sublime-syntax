@@ -1,0 +1,114 @@
+%YAML 1.2
+---
+name: LOC
+file_extensions:
+  - sqi
+  - sqm
+  - sql
+file_include_patterns:
+  - "**/Office/**/*.sql"
+  - "*\\Office\\**\\*.sql"
+scope: source.sq
+
+contexts:
+  main:
+    # Comments
+    - match: '/\*'
+      scope: comment.block.sq
+      push:
+        - match: '\*/'
+          pop: true
+        - match: '.'
+          scope: comment.block.sq
+
+    # Global macro rules so they match inside SQL blocks and anywhere else
+    - include: macros
+
+    # Quoted Content Delimiters
+    - match: "'"
+      scope: punctuation.definition.string.begin.sq
+      push:
+        - match: "'"
+          scope: punctuation.definition.string.end.sq
+          pop: true
+
+    # SQL Block Entry (Multi-line SQL contexts like CREATE TABLE / BEGIN ... END)
+    - match: '(?i)\b(CREATE\s+TABLE|DECLARE|BEGIN)\b'
+      scope: keyword.control.sql.sq
+      push:
+        - meta_scope: meta.embedded.block.sql.sq
+        - match: '\bEND\b'
+          pop: true
+        - include: embedded-sql
+
+    # Standard SQL Keywords
+    - match: '(?i)\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP\s+BY|HAVING|ORDER\s+BY|INSERT\s+INTO|VALUES|UPDATE|SET|DELETE|DROP\s+TABLE|WHILE|IF|AND|OR|NOT|IN|AS|CASE|WHEN|THEN|ELSE|EXISTS|LIKE|DISTINCT|IS|NULL)\b'
+      scope: keyword.control.sql.sq
+
+    # SQL Types & Functions
+    - match: '(?i)\b(VARCHAR|INTEGER|DATETIME|FLOAT|MONEY|INT|CHAR|TEXT|COUNT|ISNULL|CAST|CONVERT|SUM|MAX|MIN|AVG|RIGHT|STR)\b'
+      scope: support.function.sql.sq
+
+    # Field Identifiers (F1000, F254, etc.)
+    - match: '\b[Ff]\d+\b'
+      scope: variable.parameter.sq
+
+    # Table / Temp Table Aliases (#RPTCHK_STORE, TMP_)
+    - match: '(#|TMP_)[A-Za-z0-9_]+'
+      scope: variable.other.table.sq
+
+    # Numbers
+    - match: '\b\d+(?:\.\d+)?\b'
+      scope: constant.numeric.sq
+
+    # Operators & Punctuation
+    - match: '(=|<>|!=|<=|>=|<|>|\+|\*|/)'
+      scope: keyword.operator.sq
+    - match: '[,;()]'
+      scope: punctuation.section.sq
+
+  macros:
+    # Macro Escape Characters (including legacy code-page encoding artifacts)
+    - match: '[Ž®娠庫圃容差]'
+      scope: punctuation.accessor.sq
+
+    # Wizard Control Directives
+    - match: '(?i)(?:[Ž®娠庫圃容差])?@(WIZRPL|WIZSET|WIZINIT|WIZTARGET|WIZDISPLAY|MAP_DEPLOY|CMD_DEPLOY|MAC_DEPLOY|EXEC|WIZFIL|WIZMENU|WIZCLR|DBVIEW|IMPORT_SIL|import_sil)\b'
+      scope: keyword.control.directive.sq
+
+    # Built-in Wizard and Utility Functions
+    - match: '(?i)(?:[Ž®娠庫圃容差])?@(dbHot|fmt|wizGet|dbSelect|dbGen|wizIsBlank|dbRow|dbDct|dbZ|tools|macShort|winWait|WINMAIL)\b'
+      scope: support.function.sq
+
+    # General Wizard Variables & Identifiers (explicitly scoped to variable.other.macro to distinguish from SQL keywords)
+    - match: '(?:[Ž®娠庫圃容差])?@[A-Za-z0-9_]+'
+      scope: variable.other.macro.sq
+
+  embedded-sql:
+    # Context rules for parsing inside multi-line SQL blocks safely
+    - match: '/\*'
+      scope: comment.block.sq
+      push:
+        - match: '\*/'
+          pop: true
+        - match: '.'
+          scope: comment.block.sq
+    - include: macros
+    - match: "'"
+      scope: punctuation.definition.string.begin.sq
+      push:
+        - match: "'"
+          scope: punctuation.definition.string.end.sq
+          pop: true
+    - match: '(?i)\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP\s+BY|HAVING|ORDER\s+BY|INSERT\s+INTO|VALUES|UPDATE|SET|DELETE|DECLARE|WHILE|BEGIN|END|IF|AND|OR|NOT|IN|AS|CASE|WHEN|THEN|ELSE|EXISTS|LIKE|DISTINCT|IS|NULL|VARCHAR|INTEGER|DATETIME|FLOAT|MONEY|INT|CHAR|TEXT|COUNT|ISNULL|CAST|CONVERT|SUM|MAX|MIN|AVG|RIGHT|STR)\b'
+      scope: keyword.control.sql.sq
+    - match: '\b[Ff]\d+\b'
+      scope: variable.parameter.sq
+    - match: '(#|TMP_)[A-Za-z0-9_]+'
+      scope: variable.other.table.sq
+    - match: '\b\d+(?:\.\d+)?\b'
+      scope: constant.numeric.sq
+    - match: '(=|<>|!=|<=|>=|<|>|\+|\*|/)'
+      scope: keyword.operator.sq
+    - match: '[,;()]'
+      scope: punctuation.section.sq

@@ -1,0 +1,287 @@
+%YAML 1.2
+---
+name: SIL (Rainbow)
+file_extensions:
+  - sil
+scope: text.rainbow.sil
+
+contexts:
+  main:
+    # Comments
+    - match: '(--|#).*$'
+      scope: comment.line
+
+    # Directives
+    - match: '(?i)@(CREATE|UPDATE_BATCH|COMMIT|END)\b'
+      scope: keyword.control.directive.sil
+
+    # Header: Enter 10-column rainbow rotation after SELECT in CREATE VIEW
+    - match: '(?i)\bSELECT\b'
+      scope: keyword.other.sql
+      push: col1_header
+
+    # General SQL Scaffolding
+    - match: '(?i)\b(CREATE\s+VIEW|AS|FROM|INSERT\s+INTO|VALUES|DROP\s+TABLE)\b'
+      scope: keyword.other.sql
+
+    # Data Rows: Enter 10-column rainbow rotation on '('
+    - match: '^\s*\('
+      scope: punctuation.section.sequence.begin
+      push: col1
+
+  # =============================================================
+  # Header Column Rotation (Triggered inside SELECT ... FROM)
+  # =============================================================
+
+  col1_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col2_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: markup.deleted.sil markup.rainbow1
+
+  col2_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col3_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: constant.numeric.sil markup.rainbow2
+
+  col3_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col4_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: entity.name.class.sil markup.rainbow3
+
+  col4_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col5_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: string.quoted.single.sil markup.rainbow4
+
+  col5_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col6_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: support.type.sil markup.rainbow5
+
+  col6_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col7_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: entity.name.function.sil markup.rainbow6
+
+  col7_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col8_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: keyword.control.sil markup.rainbow7
+
+  col8_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col9_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: variable.parameter.sil markup.rainbow8
+
+  col9_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col10_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: comment.line.sil markup.rainbow9
+
+  col10_header:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col1_header
+    - include: header_end
+    - match: '[A-Za-z0-9_]+'
+      scope: storage.type.sil markup.rainbow10
+
+  header_end:
+    - match: '(?i)\bFROM\b'
+      scope: keyword.other.sql
+      pop: true
+    - match: ';'
+      scope: punctuation.terminator.statement
+      pop: true
+
+  # =============================================================
+  # Data Row Column Rotation (Triggered inside '(' ... ')')
+  # =============================================================
+
+  col1:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col2
+    - include: col_end
+    - include: field_content_1
+
+  col2:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col3
+    - include: col_end
+    - include: field_content_2
+
+  col3:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col4
+    - include: col_end
+    - include: field_content_3
+
+  col4:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col5
+    - include: col_end
+    - include: field_content_4
+
+  col5:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col6
+    - include: col_end
+    - include: field_content_5
+
+  col6:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col7
+    - include: col_end
+    - include: field_content_6
+
+  col7:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col8
+    - include: col_end
+    - include: field_content_7
+
+  col8:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col9
+    - include: col_end
+    - include: field_content_8
+
+  col9:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col10
+    - include: col_end
+    - include: field_content_9
+
+  col10:
+    - match: ','
+      scope: punctuation.separator.sequence
+      set: col1
+    - include: col_end
+    - include: field_content_10
+
+  col_end:
+    - match: '\)\s*[,;]?'
+      scope: punctuation.section.sequence.end
+      pop: true
+    - match: '$'
+      pop: true
+
+  # =============================================================
+  # Field Content Parsers (with safe SQL '' escaping)
+  # =============================================================
+
+  field_content_1:
+    - match: "'(?:''|[^'])*'"
+      scope: markup.deleted.sil markup.rainbow1
+    - match: '"(?:""|[^"])*"'
+      scope: markup.deleted.sil markup.rainbow1
+    - match: '[^,)\n\r]+'
+      scope: markup.deleted.sil markup.rainbow1
+
+  field_content_2:
+    - match: "'(?:''|[^'])*'"
+      scope: constant.numeric.sil markup.rainbow2
+    - match: '"(?:""|[^"])*"'
+      scope: constant.numeric.sil markup.rainbow2
+    - match: '[^,)\n\r]+'
+      scope: constant.numeric.sil markup.rainbow2
+
+  field_content_3:
+    - match: "'(?:''|[^'])*'"
+      scope: entity.name.class.sil markup.rainbow3
+    - match: '"(?:""|[^"])*"'
+      scope: entity.name.class.sil markup.rainbow3
+    - match: '[^,)\n\r]+'
+      scope: entity.name.class.sil markup.rainbow3
+
+  field_content_4:
+    - match: "'(?:''|[^'])*'"
+      scope: string.quoted.single.sil markup.rainbow4
+    - match: '"(?:""|[^"])*"'
+      scope: string.quoted.double.sil markup.rainbow4
+    - match: '[^,)\n\r]+'
+      scope: string.unquoted.sil markup.rainbow4
+
+  field_content_5:
+    - match: "'(?:''|[^'])*'"
+      scope: support.type.sil markup.rainbow5
+    - match: '"(?:""|[^"])*"'
+      scope: support.type.sil markup.rainbow5
+    - match: '[^,)\n\r]+'
+      scope: support.type.sil markup.rainbow5
+
+  field_content_6:
+    - match: "'(?:''|[^'])*'"
+      scope: entity.name.function.sil markup.rainbow6
+    - match: '"(?:""|[^"])*"'
+      scope: entity.name.function.sil markup.rainbow6
+    - match: '[^,)\n\r]+'
+      scope: entity.name.function.sil markup.rainbow6
+
+  field_content_7:
+    - match: "'(?:''|[^'])*'"
+      scope: keyword.control.sil markup.rainbow7
+    - match: '"(?:""|[^"])*"'
+      scope: keyword.control.sil markup.rainbow7
+    - match: '[^,)\n\r]+'
+      scope: keyword.control.sil markup.rainbow7
+
+  field_content_8:
+    - match: "'(?:''|[^'])*'"
+      scope: variable.parameter.sil markup.rainbow8
+    - match: '"(?:""|[^"])*"'
+      scope: variable.parameter.sil markup.rainbow8
+    - match: '[^,)\n\r]+'
+      scope: variable.parameter.sil markup.rainbow8
+
+  field_content_9:
+    - match: "'(?:''|[^'])*'"
+      scope: comment.line.sil markup.rainbow9
+    - match: '"(?:""|[^"])*"'
+      scope: comment.line.sil markup.rainbow9
+    - match: '[^,)\n\r]+'
+      scope: comment.line.sil markup.rainbow9
+
+  field_content_10:
+    - match: "'(?:''|[^'])*'"
+      scope: storage.type.sil markup.rainbow10
+    - match: '"(?:""|[^"])*"'
+      scope: storage.type.sil markup.rainbow10
+    - match: '[^,)\n\r]+'
+      scope: storage.type.sil markup.rainbow10

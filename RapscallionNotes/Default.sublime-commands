@@ -1,0 +1,18 @@
+[
+    {
+        "caption": "Preferences: Rapscallion Tools - Notes Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionNotes/RapscallionNotes.sublime-settings",
+            "default": "{\n    $0\n}\n"
+        }
+    },
+    {
+        "caption": "Rapscallion Tools: Notes - Create or Open Ticket Note",
+        "command": "create_ticket_note"
+    },
+    {
+        "caption": "Rapscallion Tools: Notes - Edit Template",
+        "command": "edit_rapscallion_template"
+    }
+]

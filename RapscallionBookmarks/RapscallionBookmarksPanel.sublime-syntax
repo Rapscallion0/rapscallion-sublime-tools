@@ -1,0 +1,29 @@
+%YAML 1.2
+---
+name: Rapscallion Bookmarks Panel
+hidden: true
+scope: source.rapscallion.bookmarks
+
+contexts:
+  main:
+    - match: '^={5,}'
+      scope: punctuation.definition.separator.rapscallion
+
+    - match: '^RAPSCALLION BOOKMARKS.*$'
+      scope: entity.name.section.rapscallion
+
+    - match: '\[(Enter|Del|r|Esc|F5)\]'
+      scope: keyword.control.shortcut.rapscallion
+
+    - match: '^([^\s\t].*):$'
+      captures:
+        1: entity.name.filename.rapscallion
+
+    - match: '^\s{2,4}(\d+)(?::(\d+))?\s{2,}(.*?)$'
+      captures:
+        1: constant.numeric.line.rapscallion
+        2: constant.numeric.col.rapscallion
+        3: markup.heading.bookmark.rapscallion
+
+    - match: '^\s{6,}(.*?)$'
+      scope: comment.line.preview.rapscallion

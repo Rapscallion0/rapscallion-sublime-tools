@@ -1,0 +1,13 @@
+{
+  // Live scrolling preview in Quick Panel (Alt+B)
+  "quick_panel_preview": true,
+
+  // Default panel mode: "bottom_panel" (native dock) or "side_dock" (split column)
+  "panel_mode": "bottom_panel",
+
+  // Side dock preferences (if using side panel)
+  "side": "right",
+  "panel_width": 0.22,
+  "remember_panel_width": true,
+  "min_panel_ratio": 0.12
+}

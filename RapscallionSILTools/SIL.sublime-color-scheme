@@ -1,0 +1,71 @@
+{
+    "rules":
+    [
+        {
+            "name": "SIL Column 1",
+            "scope": "markup.rainbow1.sil, rainbow1",
+            "foreground": "#E06C75"
+        },
+        {
+            "name": "SIL Column 2",
+            "scope": "markup.rainbow2.sil, rainbow2",
+            "foreground": "#D19A66"
+        },
+        {
+            "name": "SIL Column 3",
+            "scope": "markup.rainbow3.sil, rainbow3",
+            "foreground": "#E5C07B"
+        },
+        {
+            "name": "SIL Column 4",
+            "scope": "markup.rainbow4.sil, rainbow4",
+            "foreground": "#98C379"
+        },
+        {
+            "name": "SIL Column 5",
+            "scope": "markup.rainbow5.sil, rainbow5",
+            "foreground": "#56B6C2"
+        },
+        {
+            "name": "SIL Column 6",
+            "scope": "markup.rainbow6.sil, rainbow6",
+            "foreground": "#61AFEF"
+        },
+        {
+            "name": "SIL Column 7",
+            "scope": "markup.rainbow7.sil, rainbow7",
+            "foreground": "#C678DD"
+        },
+        {
+            "name": "SIL Column 8",
+            "scope": "markup.rainbow8.sil, rainbow8",
+            "foreground": "#BE5046"
+        },
+        {
+            "name": "SIL Column 9",
+            "scope": "markup.rainbow9.sil, rainbow9",
+            "foreground": "#7F848E"
+        },
+        {
+            "name": "SIL Column 10",
+            "scope": "markup.rainbow10.sil, rainbow10",
+            "foreground": "#4EC9B0"
+        },
+        {
+            "name": "SIL Directives",
+            "scope": "keyword.control.directive.sil",
+            "foreground": "#C678DD",
+            "font_style": "bold"
+        },
+        {
+            "name": "SIL SQL Keywords",
+            "scope": "keyword.other.sql.sil",
+            "foreground": "#61AFEF"
+        },
+        {
+            "name": "SIL Delimiters",
+            "scope": "punctuation.separator.sequence.sil",
+            "foreground": "#5C6370"
+        }
+    ]
+}

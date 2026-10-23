@@ -1,0 +1,3 @@
+[
+  { "keys": ["alt+q"], "command": "sil_sqlite_query" }
+]

@@ -1,0 +1,45 @@
+[
+    {
+        "keys": ["alt+b"],
+        "command": "rapscallion_quick_bookmarks"
+    },
+    {
+        "keys": ["alt+shift+b"],
+        "command": "rapscallion_toggle_panel"
+    },
+    {
+        "keys": ["ctrl+f2"],
+        "command": "rapscallion_set_bookmark",
+        "context": [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "not_equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["enter"],
+        "command": "rapscallion_panel_jump",
+        "context": [
+            { "key": "setting.rapscallion_bookmarks_panel", "operator": "equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["delete"],
+        "command": "rapscallion_panel_delete",
+        "context": [
+            { "key": "setting.rapscallion_bookmarks_panel", "operator": "equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["r"],
+        "command": "rapscallion_panel_rename",
+        "context": [
+            { "key": "setting.rapscallion_bookmarks_panel", "operator": "equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["f5"],
+        "command": "rapscallion_refresh_panel",
+        "context": [
+            { "key": "setting.rapscallion_bookmarks_panel", "operator": "equal", "operand": true }
+        ]
+    }
+]

@@ -1,0 +1,92 @@
+{
+    // =========================================================================
+    // Status Bar Configuration
+    // =========================================================================
+
+    // Master toggle for displaying dynamic file metadata in the status bar.
+    "show_status_bar_info": true,
+
+    // Python strftime format used to display timestamps (e.g., last modified).
+    // Common specifiers:
+    //   %Y = 4-digit year       %m = 2-digit month      %d = 2-digit day
+    //   %H = 24-hour hour       %I = 12-hour hour       %M = minute
+    //   %p = AM/PM designation  %S = second
+    "status_bar_date_format": "%Y-%m-%d %H:%M",
+
+    // Granular toggles for specific metadata widgets displayed in the status bar.
+    "status_bar_items": {
+        // Displays "[RO]" or lock status when the current buffer is marked read-only.
+        "read_only": true,
+
+        // Shows character encoding scheme (e.g., UTF-8, Windows-1252, ASCII).
+        "encoding": true,
+
+        // Shows current line-ending format (Windows: CRLF, Unix/macOS: LF, Legacy: CR).
+        "line_endings": true,
+
+        // Shows file size formatted with appropriate units (B, KB, MB, GB).
+        "size": true,
+
+        // Displays POSIX permission octals/strings on Unix/macOS or read/write attributes on Windows.
+        "permissions": true,
+
+        // Displays timestamp of when the file on disk was last written to/saved.
+        "modified": true,
+
+        // Displays the total line count for the entire buffer.
+        "total_lines": false
+    },
+
+    // =========================================================================
+    // External Media Routing
+    // =========================================================================
+
+    // Master switch for intercepting media files and routing them to external viewers.
+    "open_external_media_enabled": true,
+
+    // List of file extensions intercepted when selected in the sidebar or project tree.
+    // Instead of streaming raw binary data into editor buffers, Sublime generates
+    // an interactive preview card and launches the default OS application.
+    "external_media_extensions": [
+        // Document Formats
+        ".pdf",
+
+        // Standard Video Containers & Formats
+        ".mp4",
+        ".mkv",
+        ".mov",
+        ".avi",
+        ".webm",
+        ".wmv",
+        ".flv"
+    ],
+
+    // Behavior when clicking a media file whose preview tab is already open:
+    //   true  = Switches focus to the open preview card AND re-launches the external app.
+    //   false = Only brings the existing preview card into focus without spawning a new app instance.
+    "relaunch_if_already_open": false,
+
+    // =========================================================================
+    // Sublime Text Core Behavior Overrides
+    // =========================================================================
+
+    // Controls sidebar single-click tab creation:
+    //   true  = Single-clicking a file spawns an ephemeral/transient tab (italic title).
+    //   false = Requires a double-click to open tabs, preventing accidental background 
+    //           buffer reads or loading spinners when navigating the project tree.
+    "preview_on_click": false,
+
+    // Glob patterns for files Sublime should treat strictly as binary.
+    // Files matching these patterns are excluded from background indexing and 
+    // full-text searches ("Find in Files"), significantly reducing CPU and disk overhead.
+    "binary_file_patterns": [
+        "*.pdf",
+        "*.mp4",
+        "*.mkv",
+        "*.mov",
+        "*.avi",
+        "*.webm",
+        "*.wmv",
+        "*.flv"
+    ]
+}

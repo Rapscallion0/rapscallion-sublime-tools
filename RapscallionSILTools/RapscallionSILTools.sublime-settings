@@ -1,0 +1,42 @@
+{
+    // =========================================================================
+    // Hover Inspection Tooltips
+    // =========================================================================
+    "hover_enabled": true,
+    "hover_show_value": true,
+    "hover_max_value_length": 80,
+
+    // =========================================================================
+    // Status Bar Feedback
+    // =========================================================================
+    // Show current column position and header name at the cursor position
+    "status_bar_column_info": true,
+
+    // =========================================================================
+    // Ingestion & Async Engine Options
+    // =========================================================================
+    // Parse files and initialize SQLite on a background worker thread
+    "async_ingestion": true,
+
+    // Batch size (rows) when inserting data into SQLite
+    "ingestion_batch_size": 5000,
+
+    // Number of sample rows inspected to infer SQLite data types (0 = all TEXT)
+    "type_inference_sample_size": 100,
+
+    // =========================================================================
+    // Multi-Table SIL Dump Handling
+    // =========================================================================
+    // Behavior when multiple CREATE VIEW declarations are detected:
+    //   "prompt"     - Shows a quick panel to pick the active table to query.
+    //   "all_silent" - Ingests all tables and defaults the query panel to the first table.
+    //   "first"      - Only parses the very first table found.
+    "multi_table_behavior": "prompt",
+
+    // =========================================================================
+    // Query Execution & Templates
+    // =========================================================================
+    "default_query_template": "SELECT * FROM {table}",
+    "export_delimiter": ",",
+    "preferred_csv_syntax": ""
+}

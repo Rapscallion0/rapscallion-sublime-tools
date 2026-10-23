@@ -1,0 +1,18 @@
+[
+    {
+        "caption": "Preferences: Rapscallion Tools Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionTools/RapscallionTools.sublime-settings",
+            "default": "{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "Rapscallion Tools: Toggle Status Bar Info",
+        "command": "rapscallion_toggle_status_bar"
+    },
+    {
+        "caption": "Rapscallion Tools: Show Status Bar Info Details",
+        "command": "rapscallion_show_status_details"
+    }
+]

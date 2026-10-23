@@ -1,0 +1,22 @@
+[
+    {
+        "caption": "Preferences: Rapscallion Tools - SIL Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionSILTools/RapscallionSILTools.sublime-settings",
+            "default": "{\n    $0\n}\n"
+        }
+    },
+    {
+        "caption": "Rapscallion Tools: SIL - Query with SQLite",
+        "command": "sil_sqlite_query"
+    },
+    {
+        "caption": "Rapscallion Tools: SIL - Toggle Field Hover",
+        "command": "sil_toggle_hover"
+    },
+    {
+        "caption": "Rapscallion Tools: SIL - Documentation",
+        "command": "sil_show_docs"
+    }
+]

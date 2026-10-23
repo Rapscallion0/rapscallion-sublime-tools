@@ -1,0 +1,50 @@
+[
+    {
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "id": "preferences",
+        "children": [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "Rapscallion Tools",
+                        "id": "rapscallion-tools",
+                        "children": [
+                            {
+                                "caption": "SIL Query & Inspector",
+                                "children": [
+                                    {
+                                        "caption": "Settings",
+                                        "command": "edit_settings",
+                                        "args": {
+                                            "base_file": "${packages}/RapscallionSILTools/RapscallionSILTools.sublime-settings",
+                                            "default": "{\n    $0\n}\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Key Bindings",
+                                        "command": "edit_settings",
+                                        "args": {
+                                            "base_file": "${packages}/RapscallionSILTools/Default (Windows).sublime-keymap",
+                                            "default": "[\n    $0\n]\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "-"
+                                    },
+                                    {
+                                        "caption": "Documentation",
+                                        "command": "sil_show_docs"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

@@ -1,0 +1,38 @@
+[
+    {
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "id": "preferences",
+        "children": [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "Rapscallion Tools",
+                        "id": "rapscallion-tools",
+                        "children": [
+                            {
+                                "caption": "Core Settings",
+                                "command": "edit_settings",
+                                "args": {
+                                    "base_file": "${packages}/RapscallionTools/RapscallionTools.sublime-settings",
+                                    "default": "{\n\t$0\n}\n"
+                                }
+                            },
+                            {
+                                "caption": "Key Bindings",
+                                "command": "edit_settings",
+                                "args": {
+                                    "base_file": "${packages}/RapscallionTools/Default (Windows).sublime-keymap",
+                                    "default": "[\n\t$0\n]\n"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

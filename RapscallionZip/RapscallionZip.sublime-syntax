@@ -1,0 +1,46 @@
+%YAML 1.2
+---
+name: Rapscallion Zip Tree
+file_extensions: []
+scope: source.rapscallion-zip
+
+contexts:
+  main:
+    # Top metadata keywords
+    - match: '^(ARCHIVE|PATH|ARCHIVE SIZE|DATE MODIFIED|CONTENTS):'
+      scope: keyword.other.rapscallion-zip
+
+    # Informational hint line above the table
+    - match: '^[ \t]*ℹ.*$'
+      scope: comment.line.rapscallion-zip
+
+    # Table column header row
+    - match: '^(Name)\s+(Size)\s+(Compressed)\s+(Date)$'
+      captures:
+        1: entity.name.section.rapscallion-zip
+        2: entity.name.section.rapscallion-zip
+        3: entity.name.section.rapscallion-zip
+        4: entity.name.section.rapscallion-zip
+
+    # Dividers
+    - match: '^(=+|-+)$'
+      scope: punctuation.separator.rapscallion-zip
+
+    # Directory line: arrow and folder name
+    - match: '^[ \t]*([▸▾▶▼])\s+📁\s+(.+?)/$'
+      captures:
+        1: keyword.operator.logical.rapscallion-zip
+        2: entity.name.section.rapscallion-zip
+
+    # File line: match icon and document name up to column alignment
+    - match: '^[ \t]*📄\s+(.+?)(?=\s+\d+(\.\d+)?\s*(B|KB|MB|GB|TB))'
+      captures:
+        1: string.unquoted.rapscallion-zip
+
+    # Sizes with units (e.g. 14.2 KB, 102 B)
+    - match: '\b\d+(\.\d+)?\s*(B|KB|MB|GB|TB)\b'
+      scope: constant.numeric.rapscallion-zip
+
+    # Match dates ONLY at the end of file entries (YYYY-MM-DD HH:MM)
+    - match: '(?<=\s)\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$'
+      scope: constant.other.date.rapscallion-zip

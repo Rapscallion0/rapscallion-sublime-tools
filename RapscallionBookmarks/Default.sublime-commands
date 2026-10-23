@@ -1,0 +1,34 @@
+[
+    {
+        "caption": "Preferences: Rapscallion Tools - Bookmarks Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionBookmarks/RapscallionBookmarks.sublime-settings",
+            "default": "{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Quick Panel (Jump / Search)",
+        "command": "rapscallion_quick_bookmarks"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Toggle Bottom Panel",
+        "command": "rapscallion_toggle_panel"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Add or Edit Bookmark",
+        "command": "rapscallion_set_bookmark"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Toggle Side Panel (HTML Sheet)",
+        "command": "rapscallion_toggle_side_panel"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Expand All Files",
+        "command": "rapscallion_expand_all_bookmarks"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Collapse All Files",
+        "command": "rapscallion_collapse_all_bookmarks"
+    }
+]

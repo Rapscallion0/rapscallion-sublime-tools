@@ -1,0 +1,18 @@
+[
+    {
+        "caption": "Preferences: Rapscallion Tools - Zip Explorer Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionZip/RapscallionZip.sublime-settings",
+            "default": "{\n    $0\n}\n"
+        }
+    },
+    {
+        "caption": "Rapscallion Tools: Zip - Clear Extracted Cache",
+        "command": "rapscallion_clear_zip_cache"
+    },
+    {
+        "caption": "Rapscallion Tools: Zip - Filter Current Archive Tree",
+        "command": "rapscallion_filter_zip"
+    }
+]

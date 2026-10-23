@@ -1,0 +1,26 @@
+[
+    {
+        "keys": ["ctrl+f3"],
+        "command": "jump_to_first_match"
+    },
+    {
+        "keys": ["alt+m"],
+        "command": "jump_xml_tag",
+        "context": [
+            { "key": "selector", "operator": "equal", "operand": "text.xml, embedding.xml" }
+        ]
+    },
+    // Full timestamp: 2026-09-03 16:15:30
+    {
+        "keys": ["shift+f5"],
+        "command": "insert_timestamp",
+        "args": { "format": "[%Y-%m-%d %H:%M:%S] " }
+    },
+
+    // Date only: 2026-09-03
+    {
+        "keys": ["ctrl+shift+f5"],
+        "command": "insert_timestamp",
+        "args": { "format": "[%Y-%m-%d] " }
+    }
+]
