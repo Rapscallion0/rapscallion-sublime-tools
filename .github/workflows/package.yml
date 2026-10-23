@@ -1,0 +1,53 @@
+name: Build and Release Sublime Text Packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Package Sublime Text Tools
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: Validate Python Syntax
+        run: |
+          find . -name "*.py" -not -path "./.git/*" -exec python -m py_compile {} +
+
+      - name: Build .sublime-package Archives
+        run: |
+          mkdir -p dist
+          for pkg in RapscallionBookmarks RapscallionNotes RapscallionSILTools RapscallionSyntax RapscallionTools RapscallionZip; do
+            if [ -d "$pkg" ]; then
+              echo "Packaging $pkg..."
+              cd "$pkg"
+              zip -r "../dist/${pkg}.sublime-package" . -x "*.pyc" -x "__pycache__/*" -x "*.git*"
+              cd ..
+            fi
+          done
+          ls -lh dist/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapscallion-sublime-packages
+          path: dist/*.sublime-package
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.sublime-package
+          generate_release_notes: true

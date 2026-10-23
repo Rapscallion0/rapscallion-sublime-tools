@@ -32,6 +32,8 @@ A modular, high-performance productivity suite designed for Sublime Text 4 power
 rapscallion-sublime-tools/
 ├── .agents/
 │   └── rules.md                  # Target runtime constraints and ST4 API conventions
+├── .github/
+│   └── workflows/package.yml     # Automated package builder & release CI
 ├── RapscallionBookmarks/          # Bookmarks engine (Quick Panel, Output Panel, Gutters)
 ├── RapscallionNotes/              # Project notes manager & template editor
 ├── RapscallionSILTools/           # SIL SQLite query engine & rainbow syntax
@@ -39,24 +41,45 @@ rapscallion-sublime-tools/
 ├── RapscallionTools/              # Core status bar, media, session, navigation tools
 ├── RapscallionZip/                # Archive viewer and virtual tree extractor
 ├── .gitignore                     # Git ignore rules for caches and pycache
+├── install.ps1                    # Interactive & CLI PowerShell package installer
 └── README.md                      # Suite documentation
 ```
 
 ---
 
-## Installation & Development Setup
+## Installation
 
-To link these packages directly into your live Sublime Text installation on Windows:
+### Method 1: Automated Installer (Recommended)
+
+Run the included PowerShell installer from the repository root:
 
 ```powershell
-# In PowerShell (Run as Administrator or Developer Mode enabled):
-$packages = "C:\Users\$env:USERNAME\AppData\Roaming\Sublime Text\Packages"
-$repo = "D:\_\Antigravity\Sublime"
+# Interactive Selection Menu (pick and choose packages):
+.\install.ps1
 
-@("RapscallionBookmarks", "RapscallionNotes", "RapscallionSILTools", "RapscallionSyntax", "RapscallionTools", "RapscallionZip") | ForEach-Object {
-    cmd /c mklink /J "$packages\$_" "$repo\$_"
-}
+# Install All Packages via Live Junctions (edits in repo reflect immediately):
+.\install.ps1 -All
+
+# Install All Packages via Standalone Copy (independent of repo):
+.\install.ps1 -All -Mode Copy
+
+# Install Specific Packages Only:
+.\install.ps1 -Packages RapscallionBookmarks,RapscallionNotes
+
+# Uninstall Packages:
+.\install.ps1 -All -Uninstall
 ```
+
+### Method 2: Manual Installation (No Scripts)
+
+1. In Sublime Text 4, open **Preferences > Browse Packages...** to reveal your `Packages` directory (`%APPDATA%\Sublime Text\Packages`).
+2. Copy any desired package folder (e.g., `RapscallionBookmarks`) from this repository directly into that folder.
+3. Sublime Text will instantly load the package without restarting.
+
+### Method 3: Pre-built `.sublime-package` (GitHub Releases)
+
+1. Download `<PackageName>.sublime-package` from the repository [Releases](https://github.com/Rapscallion0/rapscallion-sublime-tools/releases).
+2. Copy the file into `%APPDATA%\Sublime Text\Installed Packages`.
 
 ---
 

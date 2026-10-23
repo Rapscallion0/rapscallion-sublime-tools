@@ -140,3 +140,14 @@ Packages/RapscallionSILTools/
 ├── sil_sqlite_query.py                  # In-memory SQLite async engine & CSV exporter
 └── sil_syntax_detector.py               # Auto-assign syntax on load/save & show docs
 ```
+
+## Installation
+
+### Automated (PowerShell)
+From the repository root, run:
+`powershell
+.\install.ps1 -Packages RapscallionSILTools
+`
+
+### Manual
+Copy this RapscallionSILTools folder into your Sublime Text Packages directory (accessible via **Preferences > Browse Packages...**).

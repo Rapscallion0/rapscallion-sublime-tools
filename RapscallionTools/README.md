@@ -34,3 +34,14 @@ Essential editor utilities, session management, media preview routing, and navig
 
 Settings can be customized via **Preferences > Package Settings > Rapscallion Tools > Core Settings** or by editing:
 `Packages/User/RapscallionTools.sublime-settings`
+
+## Installation
+
+### Automated (PowerShell)
+From the repository root, run:
+`powershell
+.\install.ps1 -Packages RapscallionTools
+`
+
+### Manual
+Copy this RapscallionTools folder into your Sublime Text Packages directory (accessible via **Preferences > Browse Packages...**).

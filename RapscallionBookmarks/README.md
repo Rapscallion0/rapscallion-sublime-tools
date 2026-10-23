@@ -50,3 +50,14 @@ Settings can be customized via **Preferences > Package Settings > Rapscallion To
     "min_panel_ratio": 0.12
 }
 ```
+
+## Installation
+
+### Automated (PowerShell)
+From the repository root, run:
+`powershell
+.\install.ps1 -Packages RapscallionBookmarks
+`
+
+### Manual
+Copy this RapscallionBookmarks folder into your Sublime Text Packages directory (accessible via **Preferences > Browse Packages...**).
