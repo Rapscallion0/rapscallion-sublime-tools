@@ -21,6 +21,19 @@ ACTIVE_COMPLETIONS = {
     "table": "DATA"
 }
 
+QUERY_HISTORY = []
+SCRATCHPAD_SESSIONS = {}
+
+PRESET_QUERIES = [
+    ("Find Duplicate Values in Column", 'SELECT "{col}", COUNT(*) AS "Count" FROM "{table}" GROUP BY "{col}" HAVING COUNT(*) > 1 ORDER BY "Count" DESC;'),
+    ("Find Null or Empty Rows", 'SELECT * FROM "{table}" WHERE "{col}" IS NULL OR "{col}" = \'\';'),
+    ("Distinct Value Count for Column", 'SELECT COUNT(DISTINCT "{col}") AS "Distinct Values", COUNT(*) AS "Total Rows" FROM "{table}";'),
+    ("Top 20 Most Frequent Values", 'SELECT "{col}", COUNT(*) AS "Count" FROM "{table}" GROUP BY "{col}" ORDER BY "Count" DESC LIMIT 20;'),
+    ("Column Numeric Summary (Min, Max, Avg, Sum)", 'SELECT MIN(CAST("{col}" AS NUMERIC)) AS "Min", MAX(CAST("{col}" AS NUMERIC)) AS "Max", ROUND(AVG(CAST("{col}" AS NUMERIC)), 2) AS "Avg", ROUND(SUM(CAST("{col}" AS NUMERIC)), 2) AS "Sum" FROM "{table}";'),
+    ("Sample First 50 Rows", 'SELECT * FROM "{table}" LIMIT 50;'),
+    ("Count Total Rows in Table", 'SELECT COUNT(*) AS "Total Rows" FROM "{table}";'),
+]
+
 BASE_SQL_KEYWORDS = [
     ("SELECT", "SELECT "),
     ("WHERE", "WHERE "),
@@ -48,6 +61,187 @@ BASE_SQL_KEYWORDS = [
     ("NOT", "NOT "),
     ("BETWEEN", "BETWEEN ${1} AND ${2}")
 ]
+
+
+def record_query_history(query):
+    """Adds executed query to session history (deduplicated, newest first)."""
+    q = query.strip()
+    if not q:
+        return
+    if q in QUERY_HISTORY:
+        QUERY_HISTORY.remove(q)
+    QUERY_HISTORY.insert(0, q)
+    if len(QUERY_HISTORY) > 25:
+        del QUERY_HISTORY[25:]
+
+
+def format_as_markdown_table(headers, rows):
+    """Formats headers and rows into an aligned GitHub Flavored Markdown table."""
+    if not headers:
+        return ""
+    col_count = len(headers)
+    clean_headers = [str(h).replace("|", "\\|").replace("\n", " ").strip() for h in headers]
+
+    col_widths = [len(h) for h in clean_headers]
+    clean_rows = []
+    for r in rows:
+        row_vals = []
+        for c in range(col_count):
+            v = r[c] if c < len(r) else ""
+            if v is None:
+                s = ""
+            else:
+                s = str(v).replace("|", "\\|").replace("\r\n", "<br>").replace("\n", "<br>").strip()
+            row_vals.append(s)
+            col_widths[c] = max(col_widths[c], len(s))
+        clean_rows.append(row_vals)
+
+    header_line = "| " + " | ".join(h.ljust(col_widths[c]) for c, h in enumerate(clean_headers)) + " |"
+    sep_line = "| " + " | ".join("-" * max(3, col_widths[c]) for c in range(col_count)) + " |"
+
+    lines = [header_line, sep_line]
+    for row in clean_rows:
+        lines.append("| " + " | ".join(val.ljust(col_widths[c]) for c, val in enumerate(row)) + " |")
+
+    return "\n".join(lines) + "\n"
+
+
+def export_query_results(window, table_name, headers, rows, elapsed, query_name="Results"):
+    """Exports SQL query results as either CSV or Markdown table based on user settings."""
+    settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+    fmt = settings.get("default_result_format", "csv").lower()
+
+    new_view = window.new_file()
+    new_view.set_scratch(True)
+
+    if fmt == "markdown":
+        new_view.set_name(f"{table_name} {query_name}.md")
+        content = format_as_markdown_table(headers, rows)
+        syntax_candidates = [
+            "Packages/Markdown/Markdown.sublime-syntax",
+            "Packages/Markdown/MultiMarkdown.sublime-syntax"
+        ]
+        assigned = False
+        for cand in syntax_candidates:
+            if cand and sublime.find_resources(cand.split("/")[-1]):
+                try:
+                    new_view.assign_syntax(cand)
+                    assigned = True
+                    break
+                except Exception:
+                    continue
+        if not assigned:
+            try:
+                new_view.assign_syntax("scope:text.html.markdown")
+            except Exception:
+                pass
+    else:
+        new_view.set_name(f"{table_name} {query_name}.csv")
+        delimiter = settings.get("export_delimiter", ",")
+        output_buffer = io.StringIO()
+        writer = csv.writer(output_buffer, delimiter=delimiter, lineterminator="\n")
+        writer.writerow(headers)
+        writer.writerows(rows)
+        content = output_buffer.getvalue()
+
+        preferred = settings.get("preferred_csv_syntax", "").strip()
+        syntax_candidates = []
+        if preferred:
+            syntax_candidates.append(preferred)
+
+        syntax_candidates.extend([
+            "Packages/rainbow_csv/pregenerated_grammars/CSV (Rainbow).sublime-syntax",
+            "Packages/Rainbow CSV/CSV (Rainbow).sublime-syntax",
+            "Packages/CSV/CSV.sublime-syntax"
+        ])
+
+        assigned = False
+        for candidate in syntax_candidates:
+            if candidate and (sublime.find_resources(candidate.split("/")[-1]) or candidate == preferred):
+                try:
+                    new_view.assign_syntax(candidate)
+                    assigned = True
+                    break
+                except Exception:
+                    continue
+
+        if not assigned:
+            try:
+                new_view.assign_syntax("scope:text.csv")
+            except Exception:
+                pass
+
+    new_view.run_command("append", {"characters": content})
+    sublime.status_message(f"Rapscallion Tools: SIL - {len(rows)} rows returned in {elapsed}ms.")
+    return new_view
+
+
+def extract_row_tokens(line_str):
+    """Extracts raw token strings and their character spans (start, end, text) on a line."""
+    lstripped = line_str.lstrip()
+    indent_offset = len(line_str) - len(lstripped)
+
+    if lstripped.startswith('('):
+        open_paren = line_str.find('(')
+        close_paren = line_str.rfind(')')
+        content_start = open_paren + 1
+        content_end = close_paren if close_paren != -1 else len(line_str)
+        inside = line_str[content_start:content_end]
+
+        spans = []
+        token_start = 0
+        in_squote = False
+        in_dquote = False
+        i = 0
+        length = len(inside)
+        while i < length:
+            ch = inside[i]
+            if in_squote:
+                if ch == "'" and i + 1 < length and inside[i + 1] == "'":
+                    i += 2
+                    continue
+                elif ch == "'":
+                    in_squote = False
+                i += 1
+                continue
+            if in_dquote:
+                if ch == '"' and i + 1 < length and inside[i + 1] == '"':
+                    i += 2
+                    continue
+                elif ch == '"':
+                    in_dquote = False
+                i += 1
+                continue
+            if ch == "'":
+                in_squote = True
+                i += 1
+            elif ch == '"':
+                in_dquote = True
+                i += 1
+            elif ch == ',':
+                raw_tok = inside[token_start:i].strip()
+                spans.append((content_start + token_start, content_start + i, raw_tok))
+                token_start = i + 1
+                i += 1
+            else:
+                i += 1
+        raw_tok = inside[token_start:].strip()
+        spans.append((content_start + token_start, content_start + len(inside), raw_tok))
+        return spans
+    else:
+        spans = []
+        token_start = 0
+        in_quotes = False
+        for i, ch in enumerate(line_str):
+            if ch == '"':
+                in_quotes = not in_quotes
+            elif ch == ',' and not in_quotes:
+                raw_tok = line_str[token_start:i].strip()
+                spans.append((token_start, i, raw_tok))
+                token_start = i + 1
+        raw_tok = line_str[token_start:].strip()
+        spans.append((token_start, len(line_str), raw_tok))
+        return spans
 
 
 # ==============================================================================
@@ -89,7 +283,6 @@ def parse_sil_tuples(chunk, expected_col_count):
     """
     Parses a block of SQL tuples like:
     ('val1', 'val2', 123, , 'val with , comma', 'escaped ''quote'''),
-    ('next', ...)
     Yields list of cleaned Python values (str, int, float, or None).
     """
     length = len(chunk)
@@ -210,13 +403,15 @@ def infer_column_types(cols, rows, sample_size=100):
 
 
 # ==============================================================================
-# Auto-Completions Listener for SQL Query Input Panel
+# Auto-Completions Listener for SQL Query Input Panel & Scratchpad
 # ==============================================================================
 
 class SilSqliteCompletionListener(sublime_plugin.EventListener):
     def on_query_completions(self, view, prefix, locations):
         try:
-            if not view.settings().get("is_sil_sql_panel"):
+            is_panel = view.settings().get("is_sil_sql_panel", False)
+            is_scratch = view.settings().get("is_sil_scratchpad", False)
+            if not is_panel and not is_scratch:
                 return None
 
             tbl = ACTIVE_COMPLETIONS.get("table", "DATA")
@@ -326,6 +521,7 @@ def ingest_view_data(view, settings, progress=None):
         "CSV" in syntax
         or file_name.lower().endswith(".csv")
         or "Results.csv" in tab_name
+        or "Results.md" in tab_name
     )
 
     if not is_sil and not is_csv:
@@ -368,12 +564,10 @@ def _ingest_sil(conn, text, settings):
         else:
             chunk = text[blob_start:]
 
-        # Fast stateful lexer parses row tuples without regex string replacement
         parsed_rows = list(parse_sil_tuples(chunk, len(raw_cols)))
         if not parsed_rows:
             continue
 
-        # Dynamic type inference
         sample_size = settings.get("type_inference_sample_size", 100)
         col_types = infer_column_types(raw_cols, parsed_rows, sample_size) if sample_size > 0 else ["TEXT"] * len(raw_cols)
 
@@ -383,7 +577,6 @@ def _ingest_sil(conn, text, settings):
         placeholders = ", ".join(["?"] * len(raw_cols))
         insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'
 
-        # Batch insertion with typed value conversion
         batch_size = settings.get("ingestion_batch_size", 5000)
         for i in range(0, len(parsed_rows), batch_size):
             batch = parsed_rows[i : i + batch_size]
@@ -419,8 +612,8 @@ def _ingest_sil(conn, text, settings):
 
 
 def _ingest_csv(conn, text, tab_name, settings):
-    if "Results.csv" in tab_name:
-        base_name = tab_name.replace(" Results.csv", "").strip()
+    if "Results." in tab_name:
+        base_name = re.sub(r'\s+Results\.(csv|md)$', '', tab_name, flags=re.IGNORECASE).strip()
         table_name = (base_name + "_SUB") if base_name else "DATA"
     else:
         table_name = "DATA"
@@ -450,7 +643,6 @@ def _ingest_csv(conn, text, tab_name, settings):
 
     rows = list(reader)
 
-    # Dynamic type inference for CSV tables
     sample_size = settings.get("type_inference_sample_size", 100)
     col_types = infer_column_types(cols, rows, sample_size) if sample_size > 0 else ["TEXT"] * len(cols)
 
@@ -633,6 +825,7 @@ class SilSqliteQueryCommand(sublime_plugin.TextCommand):
             return
 
         start_time = time.time()
+        record_query_history(query)
         SilSqliteQueryCommand.last_query = query
         SilSqliteQueryCommand.last_table = table_name
 
@@ -648,54 +841,11 @@ class SilSqliteQueryCommand(sublime_plugin.TextCommand):
             return
 
         elapsed = round((time.time() - start_time) * 1000, 1)
-
-        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
-        delimiter = settings.get("export_delimiter", ",")
-
-        output_buffer = io.StringIO()
-        writer = csv.writer(output_buffer, delimiter=delimiter, lineterminator="\n")
-        writer.writerow(headers)
-        writer.writerows(rows)
-        csv_text = output_buffer.getvalue()
-
         window = self.view.window() or sublime.active_window()
         if not window:
-            sublime.status_message("Rapscallion Tools: SIL - Window is no longer available.")
             return
 
-        new_view = window.new_file()
-        new_view.set_name(f"{table_name} Results.csv")
-        new_view.set_scratch(True)
-
-        preferred = settings.get("preferred_csv_syntax", "").strip()
-        syntax_candidates = []
-        if preferred:
-            syntax_candidates.append(preferred)
-
-        syntax_candidates.extend([
-            "Packages/rainbow_csv/pregenerated_grammars/CSV (Rainbow).sublime-syntax",
-            "Packages/Rainbow CSV/CSV (Rainbow).sublime-syntax",
-            "Packages/CSV/CSV.sublime-syntax"
-        ])
-
-        assigned = False
-        for candidate in syntax_candidates:
-            if candidate and (sublime.find_resources(candidate.split("/")[-1]) or candidate == preferred):
-                try:
-                    new_view.assign_syntax(candidate)
-                    assigned = True
-                    break
-                except Exception:
-                    continue
-
-        if not assigned:
-            try:
-                new_view.assign_syntax("scope:text.csv")
-            except Exception:
-                pass
-
-        new_view.run_command("append", {"characters": csv_text})
-        sublime.status_message(f"Rapscallion Tools: SIL - {len(rows)} rows returned in {elapsed}ms.")
+        export_query_results(window, table_name, headers, rows, elapsed)
 
 
 # ==============================================================================
@@ -724,15 +874,13 @@ class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
         tab_name = view.name() or ""
         file_name = view.file_name() or ""
 
-        # 1. Attempt detection via SIL row parser
         if parse_row_at_point:
             col_idx, field_name, _ = parse_row_at_point(view, pt)
             if field_name and not field_name.startswith("Col "):
                 target_col = field_name
 
-        # 2. Attempt detection via CSV column parser
         if not target_col and parse_csv_column_at_point:
-            if "Results.csv" in tab_name or file_name.lower().endswith(".csv"):
+            if "Results." in tab_name or file_name.lower().endswith(".csv"):
                 c_idx, c_name = parse_csv_column_at_point(view, pt)
                 if c_name and not c_name.startswith("Col "):
                     target_col = c_name
@@ -756,11 +904,9 @@ class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
                 sublime.set_timeout(lambda: progress.stop(), 0)
 
                 if target_col and target_col.upper() in [c.upper() for c in available_cols]:
-                    # Exact column already detected under cursor
                     matched = [c for c in available_cols if c.upper() == target_col.upper()][0]
                     self._execute_frequency(conn, table_name, matched)
                 else:
-                    # Prompt user to select column via Quick Panel
                     def _on_col_selected(idx):
                         if idx == -1:
                             if conn:
@@ -806,43 +952,455 @@ class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
             conn.close()
             elapsed = round((time.time() - start_time) * 1000, 1)
 
-            output_buffer = io.StringIO()
-            writer = csv.writer(output_buffer, delimiter=",", lineterminator="\n")
-            writer.writerow(headers)
-            writer.writerows(rows)
-            csv_text = output_buffer.getvalue()
-
             window = self.view.window() or sublime.active_window()
             if not window:
                 return
 
-            def _show_results():
-                new_view = window.new_file()
-                new_view.set_name(f"{table_name} - {column_name} Frequency.csv")
-                new_view.set_scratch(True)
-
-                syntax_candidates = [
-                    "Packages/rainbow_csv/pregenerated_grammars/CSV (Rainbow).sublime-syntax",
-                    "Packages/Rainbow CSV/CSV (Rainbow).sublime-syntax",
-                    "Packages/CSV/CSV.sublime-syntax"
-                ]
-                for candidate in syntax_candidates:
-                    if sublime.find_resources(candidate.split("/")[-1]):
-                        try:
-                            new_view.assign_syntax(candidate)
-                            break
-                        except Exception:
-                            continue
-
-                new_view.run_command("append", {"characters": csv_text})
-                sublime.status_message(
-                    f"Rapscallion Tools: SIL - {column_name}: {len(rows)} unique values across {total_records} rows ({elapsed}ms)."
-                )
-
-            sublime.set_timeout(_show_results, 0)
+            sublime.set_timeout(
+                lambda: export_query_results(
+                    window,
+                    table_name,
+                    headers,
+                    rows,
+                    elapsed,
+                    query_name=f"{column_name} Frequency"
+                ),
+                0
+            )
         except Exception as e:
             try:
                 conn.close()
             except Exception:
                 pass
             sublime.set_timeout(lambda: sublime.error_message(f"Query Error:\n{e}"), 0)
+
+
+# ==============================================================================
+# Feature: "Goto Column N" & Schema Inspector (Alt + G)
+# ==============================================================================
+
+class SilGotoColumnCommand(sublime_plugin.TextCommand):
+    """Displays table schema & column jump navigator directly in the editor."""
+
+    def is_visible(self):
+        return is_sil_or_csv_view(self.view)
+
+    def is_enabled(self):
+        return is_sil_or_csv_view(self.view) and self.view.size() > 0
+
+    def run(self, edit):
+        view = self.view
+        window = view.window()
+        if not window:
+            return
+
+        sel = view.sel()
+        pt = sel[0].b if sel else 0
+
+        # 1. Retrieve headers for view
+        headers = None
+        if get_header_fields:
+            headers = get_header_fields(view, pt)
+
+        if not headers:
+            # Check if CSV
+            first_line = view.substr(view.line(0))
+            try:
+                reader = csv.reader([first_line])
+                row = next(reader, None)
+                if row and len(row) > 1:
+                    headers = [c.strip() for c in row if c.strip()]
+            except Exception:
+                pass
+
+        if not headers:
+            # Fallback search for SELECT ... FROM
+            all_headers = view.find_all(r'(?is)SELECT\s+([^;]+?)\s+FROM\b')
+            if all_headers:
+                txt = view.substr(all_headers[0])
+                m = re.search(r'(?is)SELECT\s+(.*?)\s+FROM\b', txt)
+                if m:
+                    headers = [re.sub(r'["\'\[\]\s]', '', f) for f in m.group(1).split(',') if f.strip()]
+
+        if not headers:
+            sublime.status_message("Rapscallion Tools: SIL - No table schema or headers found.")
+            return
+
+        # 2. Inspect sample tokens from current line (or first data row)
+        cur_line = view.line(pt)
+        cur_line_text = view.substr(cur_line)
+        spans = extract_row_tokens(cur_line_text)
+
+        target_line = cur_line
+        if not spans or (not cur_line_text.lstrip().startswith('(') and len(spans) <= 1):
+            # Locate first data row in buffer
+            data_matches = view.find_all(r'^\s*\(')
+            if data_matches:
+                target_line = view.line(data_matches[0].begin())
+                spans = extract_row_tokens(view.substr(target_line))
+            elif view.rowcol(view.size())[0] > 0:
+                # Second row for CSV
+                target_line = view.line(view.text_point(1, 0))
+                spans = extract_row_tokens(view.substr(target_line))
+
+        # 3. Build quick panel list
+        items = []
+        for i, h in enumerate(headers):
+            val = spans[i][2] if spans and i < len(spans) else ""
+            if len(val) > 50:
+                val = val[:47] + "..."
+            sample_str = f"Value: {val}" if val else "(empty)"
+            items.append([f"Col {i + 1}: {h}", sample_str])
+
+        def _on_col_selected(idx):
+            if idx == -1:
+                return
+
+            col_name = headers[idx]
+            # Jump to column on target_line
+            line_str = view.substr(target_line)
+            line_spans = extract_row_tokens(line_str)
+
+            if line_spans and idx < len(line_spans):
+                start_offset, end_offset, _ = line_spans[idx]
+                col_pt = target_line.begin() + start_offset
+                view.sel().clear()
+                view.sel().add(sublime.Region(col_pt, col_pt))
+                view.show(col_pt)
+                sublime.status_message(f"Rapscallion Tools: SIL - Jumped to Col {idx + 1}: {col_name}")
+            else:
+                view.sel().clear()
+                view.sel().add(target_line.begin())
+                view.show(target_line.begin())
+                sublime.status_message(f"Rapscallion Tools: SIL - Selected Col {idx + 1}: {col_name}")
+
+        window.show_quick_panel(items, _on_col_selected, flags=sublime.MONOSPACE_FONT)
+
+
+# ==============================================================================
+# Feature: Multi-Line SQL Query Scratchpad Tab (Ctrl + Alt + Q)
+# ==============================================================================
+
+class SilOpenScratchpadCommand(sublime_plugin.TextCommand):
+    """Opens a dedicated multi-line SQL scratchpad tab for querying the active SIL/CSV view."""
+
+    def is_visible(self):
+        return is_sil_or_csv_view(self.view) or self.view.settings().get("is_sil_scratchpad", False)
+
+    def is_enabled(self):
+        return is_sil_or_csv_view(self.view) and self.view.size() > 0
+
+    def run(self, edit):
+        view = self.view
+        window = view.window()
+        if not window:
+            return
+
+        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+        progress = SilProgressIndicator(view, "Preparing SQL Scratchpad")
+        progress.start()
+
+        def _do_open():
+            try:
+                conn, parsed_tables, _ = ingest_view_data(view, settings, progress)
+                if not parsed_tables:
+                    if conn:
+                        conn.close()
+                    sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - No valid data found."), 0)
+                    return
+
+                table_name = list(parsed_tables.keys())[0]
+                columns = parsed_tables[table_name]
+                sublime.set_timeout(lambda: progress.stop(), 0)
+
+                source_id = view.id()
+                SCRATCHPAD_SESSIONS[source_id] = {
+                    "conn": conn,
+                    "table_name": table_name,
+                    "tables": parsed_tables,
+                    "source_view": view
+                }
+
+                ACTIVE_COMPLETIONS["columns"] = columns
+                ACTIVE_COMPLETIONS["table"] = table_name
+                ACTIVE_COMPLETIONS["tables"] = list(parsed_tables.keys())
+
+                def _open_view():
+                    scratch = window.new_file()
+                    scratch.set_name(f"[{table_name} Query.sql]")
+                    scratch.set_scratch(True)
+
+                    s_settings = scratch.settings()
+                    s_settings.set("is_sil_scratchpad", True)
+                    s_settings.set("sil_source_view_id", source_id)
+                    s_settings.set("sil_table_name", table_name)
+                    s_settings.set("auto_complete", True)
+                    s_settings.set("auto_complete_commit_on_tab", True)
+
+                    try:
+                        scratch.assign_syntax("Packages/SQL/SQL.sublime-syntax")
+                    except Exception:
+                        pass
+
+                    cols_comment = ", ".join(columns[:15]) + ("..." if len(columns) > 15 else "")
+                    initial_sql = (
+                        f"-- Rapscallion SIL SQL Scratchpad\n"
+                        f"-- Press Ctrl+Enter to execute query (or selected SQL)\n"
+                        f"-- Table: {table_name} ({len(columns)} columns)\n"
+                        f"-- Columns: {cols_comment}\n\n"
+                        f"SELECT *\n"
+                        f"FROM \"{table_name}\"\n"
+                        f"LIMIT 100;\n"
+                    )
+
+                    scratch.run_command("append", {"characters": initial_sql})
+                    sublime.status_message(f"Rapscallion Tools: SIL - Opened scratchpad for table '{table_name}'. Press Ctrl+Enter to run.")
+
+                sublime.set_timeout(_open_view, 0)
+            except Exception as e:
+                sublime.set_timeout(lambda: progress.stop(), 0)
+                sublime.set_timeout(lambda: sublime.error_message(f"Scratchpad Error:\n{e}"), 0)
+
+        threading.Thread(target=_do_open).start()
+
+
+class SilExecuteScratchpadCommand(sublime_plugin.TextCommand):
+    """Executes SQL in the active scratchpad buffer and outputs results."""
+
+    def is_visible(self):
+        return self.view.settings().get("is_sil_scratchpad", False)
+
+    def is_enabled(self):
+        return self.view.settings().get("is_sil_scratchpad", False)
+
+    def run(self, edit):
+        view = self.view
+        window = view.window()
+        if not window:
+            return
+
+        source_id = view.settings().get("sil_source_view_id")
+        table_name = view.settings().get("sil_table_name", "DATA")
+
+        sel = view.sel()
+        selected_text = ""
+        if sel and not sel[0].empty():
+            selected_text = view.substr(sel[0]).strip()
+
+        if selected_text:
+            query = selected_text
+        else:
+            query = view.substr(sublime.Region(0, view.size())).strip()
+
+        clean_lines = []
+        for line in query.splitlines():
+            stripped = line.strip()
+            if not stripped.startswith("--"):
+                clean_lines.append(line)
+        query = "\n".join(clean_lines).strip()
+
+        if not query:
+            sublime.status_message("Rapscallion Tools: SIL - Scratchpad query is empty.")
+            return
+
+        session = SCRATCHPAD_SESSIONS.get(source_id)
+        conn = session["conn"] if session else None
+
+        is_conn_alive = False
+        if conn:
+            try:
+                conn.execute("SELECT 1")
+                is_conn_alive = True
+            except Exception:
+                is_conn_alive = False
+
+        progress = SilProgressIndicator(view, "Executing SQL")
+        progress.start()
+
+        def _do_execute():
+            nonlocal conn
+            try:
+                if not is_conn_alive:
+                    source_view = None
+                    for w in sublime.windows():
+                        for v in w.views():
+                            if v.id() == source_id:
+                                source_view = v
+                                break
+                    if not source_view:
+                        sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - Source SIL/CSV file closed."), 0)
+                        return
+
+                    settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+                    conn, parsed_tables, _ = ingest_view_data(source_view, settings, progress)
+                    if not parsed_tables:
+                        sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - Re-ingestion failed."), 0)
+                        return
+                    SCRATCHPAD_SESSIONS[source_id] = {
+                        "conn": conn,
+                        "table_name": table_name,
+                        "tables": parsed_tables,
+                        "source_view": source_view
+                    }
+
+                record_query_history(query)
+                SilSqliteQueryCommand.last_query = query
+                SilSqliteQueryCommand.last_table = table_name
+
+                start_time = time.time()
+                cursor = conn.cursor()
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                headers = [desc[0] for desc in cursor.description] if cursor.description else []
+                elapsed = round((time.time() - start_time) * 1000, 1)
+
+                sublime.set_timeout(lambda: progress.stop(), 0)
+                sublime.set_timeout(
+                    lambda: export_query_results(window, table_name, headers, rows, elapsed),
+                    0
+                )
+            except Exception as e:
+                sublime.set_timeout(lambda: progress.stop(), 0)
+                sublime.set_timeout(lambda: sublime.error_message(f"SQL Execution Error:\n{e}"), 0)
+
+        threading.Thread(target=_do_execute).start()
+
+
+# ==============================================================================
+# Feature: Query History & Analytical Presets
+# ==============================================================================
+
+class SilQueryPresetsCommand(sublime_plugin.TextCommand):
+    """Executes preset analytical queries or recalls query history."""
+
+    def is_visible(self):
+        return is_sil_or_csv_view(self.view)
+
+    def is_enabled(self):
+        return is_sil_or_csv_view(self.view) and self.view.size() > 0
+
+    def run(self, edit):
+        view = self.view
+        window = view.window()
+        if not window:
+            return
+
+        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+        progress = SilProgressIndicator(view, "Preparing Ingestion")
+        progress.start()
+
+        def _do_prepare():
+            try:
+                conn, parsed_tables, _ = ingest_view_data(view, settings, progress)
+                if not parsed_tables:
+                    if conn:
+                        conn.close()
+                    sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - No valid data found."), 0)
+                    return
+
+                table_name = list(parsed_tables.keys())[0]
+                available_cols = parsed_tables[table_name]
+                sublime.set_timeout(lambda: progress.stop(), 0)
+
+                items = []
+                for label, sql_tmpl in PRESET_QUERIES:
+                    items.append([f"Preset: {label}", sql_tmpl.replace('{table}', table_name)])
+
+                for q in QUERY_HISTORY:
+                    items.append(["Recent Query", q])
+
+                def _on_select(idx):
+                    if idx == -1:
+                        if conn:
+                            conn.close()
+                        return
+
+                    if idx < len(PRESET_QUERIES):
+                        label, tmpl = PRESET_QUERIES[idx]
+                        if "{col}" in tmpl:
+                            def _on_col_pick(c_idx):
+                                if c_idx == -1:
+                                    if conn:
+                                        conn.close()
+                                    return
+                                chosen_col = available_cols[c_idx]
+                                sql = tmpl.replace("{table}", table_name).replace("{col}", chosen_col)
+                                self._run_query_thread(conn, table_name, sql)
+
+                            sublime.set_timeout(
+                                lambda: window.show_quick_panel(
+                                    available_cols,
+                                    _on_col_pick,
+                                    flags=sublime.MONOSPACE_FONT
+                                ),
+                                0
+                            )
+                        else:
+                            sql = tmpl.replace("{table}", table_name)
+                            self._run_query_thread(conn, table_name, sql)
+                    else:
+                        history_idx = idx - len(PRESET_QUERIES)
+                        sql = QUERY_HISTORY[history_idx]
+                        self._run_query_thread(conn, table_name, sql)
+
+                sublime.set_timeout(
+                    lambda: window.show_quick_panel(
+                        items,
+                        _on_select
+                    ),
+                    0
+                )
+            except Exception as e:
+                sublime.set_timeout(lambda: progress.stop(), 0)
+                sublime.set_timeout(lambda: sublime.error_message(f"Presets Error:\n{e}"), 0)
+
+        threading.Thread(target=_do_prepare).start()
+
+    def _run_query_thread(self, conn, table_name, sql):
+        record_query_history(sql)
+        SilSqliteQueryCommand.last_query = sql
+        SilSqliteQueryCommand.last_table = table_name
+
+        start_time = time.time()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+            headers = [desc[0] for desc in cursor.description] if cursor.description else []
+            conn.close()
+            elapsed = round((time.time() - start_time) * 1000, 1)
+
+            window = self.view.window() or sublime.active_window()
+            if window:
+                sublime.set_timeout(
+                    lambda: export_query_results(window, table_name, headers, rows, elapsed),
+                    0
+                )
+        except Exception as e:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            sublime.set_timeout(lambda: sublime.error_message(f"Query Execution Error:\n{e}"), 0)
+
+
+# ==============================================================================
+# Feature: Markdown Table Result Formatter Toggle
+# ==============================================================================
+
+class SilToggleResultFormatCommand(sublime_plugin.TextCommand):
+    """Toggles default query result format between CSV and Markdown table"""
+
+    def is_visible(self):
+        return is_sil_or_csv_view(self.view)
+
+    def is_enabled(self):
+        return is_sil_or_csv_view(self.view)
+
+    def run(self, edit):
+        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+        current_fmt = settings.get("default_result_format", "csv").lower()
+        new_fmt = "markdown" if current_fmt == "csv" else "csv"
+        settings.set("default_result_format", new_fmt)
+        sublime.save_settings("RapscallionSILTools.sublime-settings")
+        sublime.status_message(f"Rapscallion Tools: SIL - Default result format set to {new_fmt.upper()}.")

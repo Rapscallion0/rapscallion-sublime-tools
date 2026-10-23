@@ -1,4 +1,14 @@
 [
   { "keys": ["alt+q"], "command": "sil_sqlite_query" },
-  { "keys": ["alt+f"], "command": "sil_column_frequency" }
+  { "keys": ["alt+f"], "command": "sil_column_frequency" },
+  { "keys": ["alt+g"], "command": "sil_goto_column" },
+  { "keys": ["alt+a"], "command": "sil_align_columns" },
+  { "keys": ["ctrl+alt+q"], "command": "sil_open_scratchpad" },
+  {
+    "keys": ["ctrl+enter"],
+    "command": "sil_execute_scratchpad",
+    "context": [
+      { "key": "setting.is_sil_scratchpad", "operator": "equal", "operand": true }
+    ]
+  }
 ]

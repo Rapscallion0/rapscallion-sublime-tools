@@ -34,9 +34,20 @@
     "multi_table_behavior": "prompt",
 
     // =========================================================================
-    // Query Execution & Templates
+    // Query Execution & Result Format
     // =========================================================================
+    // Output format for SQL queries and frequency distributions:
+    //   "csv"      - Outputs to standard Results.csv (with Rainbow CSV coloring)
+    //   "markdown" - Outputs to aligned GitHub-Flavored Markdown table Results.md
+    "default_result_format": "csv",
+
     "default_query_template": "SELECT * FROM {table}",
     "export_delimiter": ",",
-    "preferred_csv_syntax": ""
+    "preferred_csv_syntax": "",
+
+    // =========================================================================
+    // Column Formatter & Alignment
+    // =========================================================================
+    // Maximum character width for any single column when aligning (0 = unlimited)
+    "align_max_col_width": 120
 }
