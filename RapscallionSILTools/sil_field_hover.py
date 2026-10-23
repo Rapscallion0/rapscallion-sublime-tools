@@ -5,21 +5,29 @@ import html
 import csv
 
 COLUMN_SCOPES = [
-    "markup.deleted.sil",
-    "constant.numeric.sil",
-    "entity.name.class.sil",
-    "string.quoted.single.sil",
-    "support.type.sil",
-    "entity.name.function.sil",
-    "keyword.control.sil",
-    "variable.parameter.sil",
-    "comment.line.sil",
-    "storage.type.sil",
+    "markup.rainbow1.sil",
+    "markup.rainbow2.sil",
+    "markup.rainbow3.sil",
+    "markup.rainbow4.sil",
+    "markup.rainbow5.sil",
+    "markup.rainbow6.sil",
+    "markup.rainbow7.sil",
+    "markup.rainbow8.sil",
+    "markup.rainbow9.sil",
+    "markup.rainbow10.sil",
 ]
 
 FALLBACK_COLORS = [
-    "#E06C75", "#D19A66", "#E5C07B", "#98C379", "#56B6C2",
-    "#61AFEF", "#C678DD", "#BE5046", "#7F848E", "#4EC9B0",
+    "#FF5370",  # 1: Coral Red
+    "#FFD700",  # 2: Bright Gold / Yellow
+    "#50FA7B",  # 3: Emerald Green
+    "#38BDF8",  # 4: Sky Blue
+    "#BD93F9",  # 5: Electric Purple
+    "#FF9800",  # 6: Tangerine Orange
+    "#00E5FF",  # 7: Bright Cyan
+    "#FF79C6",  # 8: Hot Pink / Magenta
+    "#A3E635",  # 9: Lime Green
+    "#E2E8F0",  # 10: Platinum Silver
 ]
 
 CACHE_HEADERS = {}
@@ -61,6 +69,11 @@ def is_sil_or_csv_view(view):
 
 def get_column_color(view, col_index):
     cycle_idx = col_index % 10
+    settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+    custom_colors = settings.get("rainbow_column_colors")
+    if custom_colors and len(custom_colors) > cycle_idx:
+        return custom_colors[cycle_idx]
+
     scope = COLUMN_SCOPES[cycle_idx]
     style = view.style_for_scope(scope)
     fg_color = style.get("foreground")

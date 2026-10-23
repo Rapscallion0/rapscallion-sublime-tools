@@ -13,6 +13,24 @@
     "status_bar_column_info": true,
 
     // =========================================================================
+    // Rainbow Column Palette
+    // =========================================================================
+    // Curated 10-color high-contrast palette for columns 1 through 10.
+    // Overrides default theme colors in hover tooltips and status indicators.
+    "rainbow_column_colors": [
+        "#FF5370", // Col 1: Coral Red
+        "#FFD700", // Col 2: Bright Gold / Yellow
+        "#50FA7B", // Col 3: Emerald Green
+        "#38BDF8", // Col 4: Sky Blue
+        "#BD93F9", // Col 5: Electric Purple
+        "#FF9800", // Col 6: Tangerine Orange
+        "#00E5FF", // Col 7: Bright Cyan
+        "#FF79C6", // Col 8: Hot Pink / Magenta
+        "#A3E635", // Col 9: Lime Green
+        "#E2E8F0"  // Col 10: Platinum Silver
+    ],
+
+    // =========================================================================
     // Ingestion & Async Engine Options
     // =========================================================================
     // Parse files and initialize SQLite on a background worker thread

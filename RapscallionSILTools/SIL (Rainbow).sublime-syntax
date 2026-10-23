@@ -39,7 +39,7 @@ contexts:
       set: col2_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: markup.deleted.sil markup.rainbow1
+      scope: markup.rainbow1.sil markup.rainbow1 markup.deleted.sil
 
   col2_header:
     - match: ','
@@ -47,7 +47,7 @@ contexts:
       set: col3_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: constant.numeric.sil markup.rainbow2
+      scope: markup.rainbow2.sil markup.rainbow2 constant.numeric.sil
 
   col3_header:
     - match: ','
@@ -55,7 +55,7 @@ contexts:
       set: col4_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: entity.name.class.sil markup.rainbow3
+      scope: markup.rainbow3.sil markup.rainbow3 markup.inserted.sil string.quoted.double.sil
 
   col4_header:
     - match: ','
@@ -63,7 +63,7 @@ contexts:
       set: col5_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: string.quoted.single.sil markup.rainbow4
+      scope: markup.rainbow4.sil markup.rainbow4 entity.name.function.sil
 
   col5_header:
     - match: ','
@@ -71,7 +71,7 @@ contexts:
       set: col6_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: support.type.sil markup.rainbow5
+      scope: markup.rainbow5.sil markup.rainbow5 keyword.control.sil
 
   col6_header:
     - match: ','
@@ -79,7 +79,7 @@ contexts:
       set: col7_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: entity.name.function.sil markup.rainbow6
+      scope: markup.rainbow6.sil markup.rainbow6 variable.parameter.sil
 
   col7_header:
     - match: ','
@@ -87,7 +87,7 @@ contexts:
       set: col8_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: keyword.control.sil markup.rainbow7
+      scope: markup.rainbow7.sil markup.rainbow7 support.type.sil
 
   col8_header:
     - match: ','
@@ -95,7 +95,7 @@ contexts:
       set: col9_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: variable.parameter.sil markup.rainbow8
+      scope: markup.rainbow8.sil markup.rainbow8 entity.other.attribute-name.sil
 
   col9_header:
     - match: ','
@@ -103,7 +103,7 @@ contexts:
       set: col10_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: comment.line.sil markup.rainbow9
+      scope: markup.rainbow9.sil markup.rainbow9 string.quoted.single.sil
 
   col10_header:
     - match: ','
@@ -111,7 +111,7 @@ contexts:
       set: col1_header
     - include: header_end
     - match: '[A-Za-z0-9_]+'
-      scope: storage.type.sil markup.rainbow10
+      scope: markup.rainbow10.sil markup.rainbow10 punctuation.section.sil
 
   header_end:
     - match: '(?i)\bFROM\b'
@@ -208,80 +208,80 @@ contexts:
 
   field_content_1:
     - match: "'(?:''|[^'])*'"
-      scope: markup.deleted.sil markup.rainbow1
+      scope: markup.rainbow1.sil markup.rainbow1 markup.deleted.sil
     - match: '"(?:""|[^"])*"'
-      scope: markup.deleted.sil markup.rainbow1
+      scope: markup.rainbow1.sil markup.rainbow1 markup.deleted.sil
     - match: '[^,)\n\r]+'
-      scope: markup.deleted.sil markup.rainbow1
+      scope: markup.rainbow1.sil markup.rainbow1 markup.deleted.sil
 
   field_content_2:
     - match: "'(?:''|[^'])*'"
-      scope: constant.numeric.sil markup.rainbow2
+      scope: markup.rainbow2.sil markup.rainbow2 constant.numeric.sil
     - match: '"(?:""|[^"])*"'
-      scope: constant.numeric.sil markup.rainbow2
+      scope: markup.rainbow2.sil markup.rainbow2 constant.numeric.sil
     - match: '[^,)\n\r]+'
-      scope: constant.numeric.sil markup.rainbow2
+      scope: markup.rainbow2.sil markup.rainbow2 constant.numeric.sil
 
   field_content_3:
     - match: "'(?:''|[^'])*'"
-      scope: entity.name.class.sil markup.rainbow3
+      scope: markup.rainbow3.sil markup.rainbow3 markup.inserted.sil string.quoted.double.sil
     - match: '"(?:""|[^"])*"'
-      scope: entity.name.class.sil markup.rainbow3
+      scope: markup.rainbow3.sil markup.rainbow3 markup.inserted.sil string.quoted.double.sil
     - match: '[^,)\n\r]+'
-      scope: entity.name.class.sil markup.rainbow3
+      scope: markup.rainbow3.sil markup.rainbow3 markup.inserted.sil string.quoted.double.sil
 
   field_content_4:
     - match: "'(?:''|[^'])*'"
-      scope: string.quoted.single.sil markup.rainbow4
+      scope: markup.rainbow4.sil markup.rainbow4 entity.name.function.sil
     - match: '"(?:""|[^"])*"'
-      scope: string.quoted.double.sil markup.rainbow4
+      scope: markup.rainbow4.sil markup.rainbow4 entity.name.function.sil
     - match: '[^,)\n\r]+'
-      scope: string.unquoted.sil markup.rainbow4
+      scope: markup.rainbow4.sil markup.rainbow4 entity.name.function.sil
 
   field_content_5:
     - match: "'(?:''|[^'])*'"
-      scope: support.type.sil markup.rainbow5
+      scope: markup.rainbow5.sil markup.rainbow5 keyword.control.sil
     - match: '"(?:""|[^"])*"'
-      scope: support.type.sil markup.rainbow5
+      scope: markup.rainbow5.sil markup.rainbow5 keyword.control.sil
     - match: '[^,)\n\r]+'
-      scope: support.type.sil markup.rainbow5
+      scope: markup.rainbow5.sil markup.rainbow5 keyword.control.sil
 
   field_content_6:
     - match: "'(?:''|[^'])*'"
-      scope: entity.name.function.sil markup.rainbow6
+      scope: markup.rainbow6.sil markup.rainbow6 variable.parameter.sil
     - match: '"(?:""|[^"])*"'
-      scope: entity.name.function.sil markup.rainbow6
+      scope: markup.rainbow6.sil markup.rainbow6 variable.parameter.sil
     - match: '[^,)\n\r]+'
-      scope: entity.name.function.sil markup.rainbow6
+      scope: markup.rainbow6.sil markup.rainbow6 variable.parameter.sil
 
   field_content_7:
     - match: "'(?:''|[^'])*'"
-      scope: keyword.control.sil markup.rainbow7
+      scope: markup.rainbow7.sil markup.rainbow7 support.type.sil
     - match: '"(?:""|[^"])*"'
-      scope: keyword.control.sil markup.rainbow7
+      scope: markup.rainbow7.sil markup.rainbow7 support.type.sil
     - match: '[^,)\n\r]+'
-      scope: keyword.control.sil markup.rainbow7
+      scope: markup.rainbow7.sil markup.rainbow7 support.type.sil
 
   field_content_8:
     - match: "'(?:''|[^'])*'"
-      scope: variable.parameter.sil markup.rainbow8
+      scope: markup.rainbow8.sil markup.rainbow8 entity.other.attribute-name.sil
     - match: '"(?:""|[^"])*"'
-      scope: variable.parameter.sil markup.rainbow8
+      scope: markup.rainbow8.sil markup.rainbow8 entity.other.attribute-name.sil
     - match: '[^,)\n\r]+'
-      scope: variable.parameter.sil markup.rainbow8
+      scope: markup.rainbow8.sil markup.rainbow8 entity.other.attribute-name.sil
 
   field_content_9:
     - match: "'(?:''|[^'])*'"
-      scope: comment.line.sil markup.rainbow9
+      scope: markup.rainbow9.sil markup.rainbow9 string.quoted.single.sil
     - match: '"(?:""|[^"])*"'
-      scope: comment.line.sil markup.rainbow9
+      scope: markup.rainbow9.sil markup.rainbow9 string.quoted.single.sil
     - match: '[^,)\n\r]+'
-      scope: comment.line.sil markup.rainbow9
+      scope: markup.rainbow9.sil markup.rainbow9 string.quoted.single.sil
 
   field_content_10:
     - match: "'(?:''|[^'])*'"
-      scope: storage.type.sil markup.rainbow10
+      scope: markup.rainbow10.sil markup.rainbow10 punctuation.section.sil
     - match: '"(?:""|[^"])*"'
-      scope: storage.type.sil markup.rainbow10
+      scope: markup.rainbow10.sil markup.rainbow10 punctuation.section.sil
     - match: '[^,)\n\r]+'
-      scope: storage.type.sil markup.rainbow10
+      scope: markup.rainbow10.sil markup.rainbow10 punctuation.section.sil

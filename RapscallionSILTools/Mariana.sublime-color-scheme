@@ -1,0 +1,71 @@
+{
+    "rules":
+    [
+        {
+            "name": "SIL Column 1",
+            "scope": "markup.rainbow1.sil, markup.rainbow1, rainbow1",
+            "foreground": "#FF5370"
+        },
+        {
+            "name": "SIL Column 2",
+            "scope": "markup.rainbow2.sil, markup.rainbow2, rainbow2",
+            "foreground": "#FFD700"
+        },
+        {
+            "name": "SIL Column 3",
+            "scope": "markup.rainbow3.sil, markup.rainbow3, rainbow3",
+            "foreground": "#50FA7B"
+        },
+        {
+            "name": "SIL Column 4",
+            "scope": "markup.rainbow4.sil, markup.rainbow4, rainbow4",
+            "foreground": "#38BDF8"
+        },
+        {
+            "name": "SIL Column 5",
+            "scope": "markup.rainbow5.sil, markup.rainbow5, rainbow5",
+            "foreground": "#BD93F9"
+        },
+        {
+            "name": "SIL Column 6",
+            "scope": "markup.rainbow6.sil, markup.rainbow6, rainbow6",
+            "foreground": "#FF9800"
+        },
+        {
+            "name": "SIL Column 7",
+            "scope": "markup.rainbow7.sil, markup.rainbow7, rainbow7",
+            "foreground": "#00E5FF"
+        },
+        {
+            "name": "SIL Column 8",
+            "scope": "markup.rainbow8.sil, markup.rainbow8, rainbow8",
+            "foreground": "#FF79C6"
+        },
+        {
+            "name": "SIL Column 9",
+            "scope": "markup.rainbow9.sil, markup.rainbow9, rainbow9",
+            "foreground": "#A3E635"
+        },
+        {
+            "name": "SIL Column 10",
+            "scope": "markup.rainbow10.sil, markup.rainbow10, rainbow10",
+            "foreground": "#E2E8F0"
+        },
+        {
+            "name": "SIL Directives",
+            "scope": "keyword.control.directive.sil",
+            "foreground": "#C678DD",
+            "font_style": "bold"
+        },
+        {
+            "name": "SIL SQL Keywords",
+            "scope": "keyword.other.sql.sil, keyword.other.sql",
+            "foreground": "#61AFEF"
+        },
+        {
+            "name": "SIL Delimiters",
+            "scope": "punctuation.separator.sequence.sil, punctuation.separator.sequence",
+            "foreground": "#7F848E"
+        }
+    ]
+}
