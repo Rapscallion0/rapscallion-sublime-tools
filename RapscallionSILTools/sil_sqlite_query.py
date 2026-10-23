@@ -8,11 +8,12 @@ import time
 import threading
 
 try:
-    from .sil_field_hover import parse_row_at_point, parse_csv_column_at_point, get_header_fields
+    from .sil_field_hover import parse_row_at_point, parse_csv_column_at_point, get_header_fields, is_sil_or_csv_view
 except Exception:
     parse_row_at_point = None
     parse_csv_column_at_point = None
     get_header_fields = None
+    is_sil_or_csv_view = lambda view: False
 
 ACTIVE_COMPLETIONS = {
     "columns": [],
@@ -499,8 +500,11 @@ class SilSqliteQueryCommand(sublime_plugin.TextCommand):
     last_query = None
     last_table = None
 
+    def is_visible(self):
+        return is_sil_or_csv_view(self.view)
+
     def is_enabled(self):
-        return self.view.size() > 0
+        return is_sil_or_csv_view(self.view) and self.view.size() > 0
 
     def run(self, edit):
         sample = self.view.substr(sublime.Region(0, min(self.view.size(), 2048))).strip()
@@ -701,8 +705,11 @@ class SilSqliteQueryCommand(sublime_plugin.TextCommand):
 class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
     """Generates a value frequency distribution report on the current column."""
 
+    def is_visible(self):
+        return is_sil_or_csv_view(self.view)
+
     def is_enabled(self):
-        return self.view.size() > 0
+        return is_sil_or_csv_view(self.view) and self.view.size() > 0
 
     def run(self, edit):
         view = self.view

@@ -25,6 +25,40 @@ FALLBACK_COLORS = [
 CACHE_HEADERS = {}
 
 
+def is_sil_or_csv_view(view):
+    """Returns True only if view contains SIL data, .sil/.csv file, or SIL/CSV results tab."""
+    if not view or not view.is_valid():
+        return False
+    if view.settings().get("is_rapscallion_zip_view", False):
+        return False
+
+    # 1. Scope check (fastest)
+    if view.score_selector(0, "text.rainbow.sil") > 0:
+        return True
+
+    # 2. Syntax path check
+    syntax = view.settings().get("syntax", "")
+    if "SIL" in syntax or "CSV" in syntax:
+        return True
+
+    # 3. File name check
+    file_name = view.file_name() or ""
+    if file_name.lower().endswith((".sil", ".csv")):
+        return True
+
+    # 4. Tab name check
+    tab_name = view.name() or ""
+    if "Results.csv" in tab_name or "Frequency.csv" in tab_name:
+        return True
+
+    # 5. Sample text check
+    sample = view.substr(sublime.Region(0, min(view.size(), 256))).lstrip()
+    if sample.upper().startswith("@CREATE(") or "CREATE VIEW" in sample.upper():
+        return True
+
+    return False
+
+
 def get_column_color(view, col_index):
     cycle_idx = col_index % 10
     scope = COLUMN_SCOPES[cycle_idx]
@@ -161,7 +195,8 @@ class SilFieldHoverListener(sublime_plugin.EventListener):
         CACHE_HEADERS.pop(view.id(), None)
 
     def on_selection_modified_async(self, view):
-        if view.settings().get("is_rapscallion_zip_view", False):
+        if not is_sil_or_csv_view(view):
+            view.erase_status("sil_col_indicator")
             return
 
         settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
@@ -180,7 +215,6 @@ class SilFieldHoverListener(sublime_plugin.EventListener):
             if col_idx is not None:
                 view.set_status("sil_col_indicator", f"Col {col_idx + 1}: {field_name}")
             else:
-                # Check if in a CSV view
                 tab_name = view.name() or ""
                 file_name = view.file_name() or ""
                 if "Results.csv" in tab_name or file_name.lower().endswith(".csv"):
@@ -197,7 +231,7 @@ class SilFieldHoverListener(sublime_plugin.EventListener):
             if hover_zone != sublime.HOVER_TEXT:
                 return
 
-            if view.settings().get("is_rapscallion_zip_view", False):
+            if not is_sil_or_csv_view(view):
                 return
 
             settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
@@ -278,9 +312,15 @@ class SilFieldHoverListener(sublime_plugin.EventListener):
             print(f"[Rapscallion Tools: SIL] Error in on_hover: {e}")
 
 
-class SilToggleHoverCommand(sublime_plugin.ApplicationCommand):
+class SilToggleHoverCommand(sublime_plugin.TextCommand):
     """Toggles hover tooltip display on or off"""
-    def run(self):
+    def is_visible(self):
+        return is_sil_or_csv_view(self.view)
+
+    def is_enabled(self):
+        return is_sil_or_csv_view(self.view)
+
+    def run(self, edit):
         settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
         current_state = settings.get("hover_enabled", True)
         new_state = not current_state

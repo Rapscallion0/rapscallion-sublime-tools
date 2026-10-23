@@ -1,5 +1,4 @@
 [
-    { "caption": "-" },
     {
         "caption": "Rapscallion Tools: Query with SQLite (Alt+Q)",
         "command": "sil_sqlite_query"
