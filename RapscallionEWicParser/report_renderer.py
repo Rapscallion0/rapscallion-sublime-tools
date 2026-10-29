@@ -1,4 +1,4 @@
-"""Report Renderer for RapscallionBuyPassEWicParser.
+"""Report Renderer for RapscallionEWicParser.
 
 Transforms Markdown audit reports into standalone GitHub-styled HTML documents
 with responsive tables, deduction badges, and print styling for web browser viewing.

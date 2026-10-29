@@ -1,4 +1,4 @@
-"""Automated Test Suite for RapscallionBuyPassEWicParser.
+"""Automated Test Suite for RapscallionEWicParser.
 
 Verifies:
 1. Single-line TLV extraction and decimal decoding.
@@ -18,14 +18,14 @@ WORKSPACE_DIR = os.path.abspath(os.path.join(PKG_DIR, ".."))
 if WORKSPACE_DIR not in sys.path:
     sys.path.insert(0, WORKSPACE_DIR)
 
-from RapscallionBuyPassEWicParser.usda_fallback import resolve_category, format_balance
-from RapscallionBuyPassEWicParser.apl_parser import APLDatabase, discover_candidate_apls
-from RapscallionBuyPassEWicParser.ewic_core import (
+from RapscallionEWicParser.usda_fallback import resolve_category, format_balance
+from RapscallionEWicParser.apl_parser import APLDatabase, discover_candidate_apls
+from RapscallionEWicParser.ewic_core import (
     parse_tlv_string,
     LogAuditScanner,
     render_markdown_report,
 )
-from RapscallionBuyPassEWicParser.report_renderer import (
+from RapscallionEWicParser.report_renderer import (
     markdown_to_standalone_html,
 )
 
@@ -267,7 +267,7 @@ def test_targeted_audit():
 
 if __name__ == "__main__":
     print("==================================================")
-    print("Starting RapscallionBuyPassEWicParser Test Suite")
+    print("Starting RapscallionEWicParser Test Suite")
     print("==================================================")
     test_tlv_parsing()
     apl_db = test_apl_loading()

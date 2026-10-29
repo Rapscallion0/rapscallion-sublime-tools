@@ -1,0 +1,41 @@
+[
+    { "caption": "-" },
+    {
+        "caption": "Rapscallion Tools",
+        "id": "rapscallion_tools_root",
+        "children": [
+            {
+                "caption": "E-WIC Log Parser",
+                "id": "rapscallion_ewic_submenu",
+                "children": [
+                    {
+                        "caption": "Analyze Transaction by ID…",
+                        "command": "ewic_analyze_transaction_by_id"
+                    },
+                    {
+                        "caption": "Audit All Transactions in Log",
+                        "command": "ewic_audit_log"
+                    },
+                    {
+                        "caption": "Parse Selected TLV Balance (Ctrl+Alt+W)",
+                        "command": "ewic_parse_selection"
+                    },
+                    {
+                        "caption": "Load APL Catalog File…",
+                        "command": "ewic_load_apl_file"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "View in Web Browser",
+                        "command": "ewic_view_report_in_browser"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Clear Active APL Cache",
+                        "command": "ewic_clear_apl_cache"
+                    }
+                ]
+            }
+        ]
+    }
+]

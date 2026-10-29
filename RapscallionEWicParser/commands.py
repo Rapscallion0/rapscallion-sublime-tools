@@ -1,9 +1,10 @@
-"""Sublime Text 4 Command Implementations for RapscallionBuyPassEWicParser.
+"""Sublime Text 4 Command Implementations for RapscallionEWicParser.
 
 Commands:
-- ewic_analyze_transaction_by_id: Audit specific transaction by F1032 / Invoice #
+- ewic_analyze_transaction_by_id: Audit specific transaction by Invoice # / Sequence # / Auth ID
 - ewic_audit_log: Audit all E-WIC transactions in active log buffer
 - ewic_parse_selection: Quick-decode cursor line or highlighted TLV string (ctrl+alt+w)
+- ewic_load_apl_file: Explicitly browse and cache an APL catalog file
 - ewic_clear_apl_cache: Reset window session-cached APL data
 """
 
@@ -33,7 +34,7 @@ from .report_renderer import (
     open_in_browser,
 )
 
-SETTINGS_FILE = "RapscallionBuyPassEWicParser.sublime-settings"
+SETTINGS_FILE = "RapscallionEWicParser.sublime-settings"
 
 
 def get_plugin_setting(key: str, default=None):
@@ -266,6 +267,26 @@ class EwicClearAplCacheCommand(sublime_plugin.WindowCommand):
     def run(self):
         clear_apl_cache(self.window.id())
         sublime.status_message("Rapscallion WIC: Active APL cache cleared.")
+
+
+class EwicLoadAplFileCommand(sublime_plugin.WindowCommand):
+    """Explicitly select and load an APL catalog file into the window cache."""
+
+    def run(self):
+        view = self.window.active_view()
+        if not view:
+            return
+
+        def on_loaded(apl_db: Optional[APLDatabase]):
+            if apl_db:
+                sublime.message_dialog(
+                    f"Successfully loaded APL catalog:\n\n"
+                    f"File: {apl_db.file_name}\n"
+                    f"Items: {len(apl_db.upc_map):,} UPC entries\n"
+                    f"Categories: {len(apl_db.cat_map)} categories"
+                )
+
+        prompt_apl_selection(view, on_loaded)
 
 
 def _is_valid_report_view(view: Optional[sublime.View]) -> bool:

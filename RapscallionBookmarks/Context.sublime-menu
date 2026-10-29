@@ -1,60 +1,58 @@
 [
     { "caption": "-" },
     {
-        "caption": "Rapscallion Bookmarks",
-        "id": "rapscallion-bookmarks-context",
+        "caption": "Rapscallion Tools",
+        "id": "rapscallion_tools_root",
         "children": [
             {
-                "caption": "Toggle Bookmark",
-                "command": "rapscallion_toggle_bookmark"
-            },
-            {
-                "caption": "Add Named Bookmark…",
-                "command": "rapscallion_set_named_bookmark"
-            },
-            {
-                "caption": "-"
-            },
-            {
-                "caption": "Next Bookmark",
-                "command": "rapscallion_next_bookmark"
-            },
-            {
-                "caption": "Previous Bookmark",
-                "command": "rapscallion_prev_bookmark"
-            },
-            {
-                "caption": "-"
-            },
-            {
-                "caption": "Quick Search Palette…",
-                "command": "rapscallion_quick_bookmarks"
-            },
-            {
-                "caption": "Toggle Bottom Dock Panel",
-                "command": "rapscallion_toggle_panel"
-            },
-            {
-                "caption": "Toggle Right Side Panel",
-                "command": "rapscallion_toggle_side_panel"
-            },
-            {
-                "caption": "-"
-            },
-            {
-                "caption": "Clear Bookmarks in This File",
-                "command": "rapscallion_clear_file_bookmarks"
-            },
-            {
-                "caption": "Clear All Bookmarks in Project…",
-                "command": "rapscallion_clear_all_bookmarks"
-            },
-            {
-                "caption": "-"
-            },
-            {
-                "caption": "Export Bookmarks to Markdown",
-                "command": "rapscallion_export_markdown"
+                "caption": "Bookmarks",
+                "id": "rapscallion_bookmarks_submenu",
+                "children": [
+                    {
+                        "caption": "Toggle Bookmark",
+                        "command": "rapscallion_toggle_bookmark"
+                    },
+                    {
+                        "caption": "Add Named Bookmark…",
+                        "command": "rapscallion_set_named_bookmark"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Next Bookmark",
+                        "command": "rapscallion_next_bookmark"
+                    },
+                    {
+                        "caption": "Previous Bookmark",
+                        "command": "rapscallion_prev_bookmark"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Quick Search Palette…",
+                        "command": "rapscallion_quick_bookmarks"
+                    },
+                    {
+                        "caption": "Toggle Bottom Dock Panel",
+                        "command": "rapscallion_toggle_panel"
+                    },
+                    {
+                        "caption": "Toggle Right Side Panel",
+                        "command": "rapscallion_toggle_side_panel"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Clear Bookmarks in This File",
+                        "command": "rapscallion_clear_file_bookmarks"
+                    },
+                    {
+                        "caption": "Clear All Bookmarks in Project…",
+                        "command": "rapscallion_clear_all_bookmarks"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Export Bookmarks to Markdown",
+                        "command": "rapscallion_export_markdown"
+                    }
+                ]
             }
         ]
     }

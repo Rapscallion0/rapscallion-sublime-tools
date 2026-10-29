@@ -1,0 +1,23 @@
+[
+    { "caption": "-" },
+    {
+        "caption": "Rapscallion Tools",
+        "id": "rapscallion_tools_root",
+        "children": [
+            {
+                "caption": "Notes & Scratchpad",
+                "id": "rapscallion_notes_submenu",
+                "children": [
+                    {
+                        "caption": "Create or Open Ticket Note (Alt+N)",
+                        "command": "create_ticket_note"
+                    },
+                    {
+                        "caption": "Edit Note Template…",
+                        "command": "edit_rapscallion_template"
+                    }
+                ]
+            }
+        ]
+    }
+]

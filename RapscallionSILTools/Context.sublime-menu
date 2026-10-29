@@ -1,34 +1,48 @@
 [
+    { "caption": "-" },
     {
-        "caption": "Rapscallion Tools: Query with SQLite (Alt+Q)",
-        "command": "sil_sqlite_query"
-    },
-    {
-        "caption": "Rapscallion Tools: Frequency Analysis on Column (Alt+F)",
-        "command": "sil_column_frequency"
-    },
-    {
-        "caption": "Rapscallion Tools: Go to Column / Schema (Alt+G)",
-        "command": "sil_goto_column"
-    },
-    {
-        "caption": "Rapscallion Tools: Align Table Columns (Alt+A)",
-        "command": "sil_align_columns"
-    },
-    {
-        "caption": "Rapscallion Tools: Open SQL Scratchpad (Ctrl+Alt+Q)",
-        "command": "sil_open_scratchpad"
-    },
-    {
-        "caption": "Rapscallion Tools: Query Presets & History",
-        "command": "sil_query_presets"
-    },
-    {
-        "caption": "Rapscallion Tools: Toggle Result Format (CSV/MD)",
-        "command": "sil_toggle_result_format"
-    },
-    {
-        "caption": "Rapscallion Tools: Toggle Field Hover",
-        "command": "sil_toggle_hover"
+        "caption": "Rapscallion Tools",
+        "id": "rapscallion_tools_root",
+        "children": [
+            {
+                "caption": "SIL & CSV Tools",
+                "id": "rapscallion_sil_submenu",
+                "children": [
+                    {
+                        "caption": "Query with SQLite (Alt+Q)",
+                        "command": "sil_sqlite_query"
+                    },
+                    {
+                        "caption": "Frequency Analysis on Column (Alt+F)",
+                        "command": "sil_column_frequency"
+                    },
+                    {
+                        "caption": "Go to Column / Schema (Alt+G)",
+                        "command": "sil_goto_column"
+                    },
+                    {
+                        "caption": "Align Table Columns (Alt+A)",
+                        "command": "sil_align_columns"
+                    },
+                    {
+                        "caption": "Open SQL Scratchpad (Ctrl+Alt+Q)",
+                        "command": "sil_open_scratchpad"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Query Presets & History",
+                        "command": "sil_query_presets"
+                    },
+                    {
+                        "caption": "Toggle Result Format (CSV/MD)",
+                        "command": "sil_toggle_result_format"
+                    },
+                    {
+                        "caption": "Toggle Field Hover",
+                        "command": "sil_toggle_hover"
+                    }
+                ]
+            }
+        ]
     }
 ]

@@ -1,4 +1,4 @@
-# RapscallionBuyPassEWicParser (Rapscallion E-WIC Parser)
+# RapscallionEWicParser (Rapscallion E-WIC Parser)
 
 A high-performance Sublime Text 4 plugin package to decode, inspect, and reconcile **Electronic WIC (E-WIC)** transactions from retail POS log files (`*.sls`, `*.sl4`). Supports **Buypass / FIS**, **RBSLynk ISO**, and **WinEPS** banking processors, with automatic driver detection and dynamic reporting.
 

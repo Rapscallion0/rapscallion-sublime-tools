@@ -1,9 +1,9 @@
 [
     {
-        "caption": "Preferences: Rapscallion BuyPass E-WIC Parser Settings",
+        "caption": "Preferences: Rapscallion E-WIC Parser Settings",
         "command": "edit_settings",
         "args": {
-            "base_file": "${packages}/RapscallionBuyPassEWicParser/RapscallionBuyPassEWicParser.sublime-settings",
+            "base_file": "${packages}/RapscallionEWicParser/RapscallionEWicParser.sublime-settings",
             "default": "{\n\t$0\n}\n"
         }
     },
@@ -18,6 +18,10 @@
     {
         "caption": "WIC: Parse Selected TLV Balance String",
         "command": "ewic_parse_selection"
+    },
+    {
+        "caption": "WIC: Load APL Catalog File…",
+        "command": "ewic_load_apl_file"
     },
     {
         "caption": "WIC: View Report in Browser",

@@ -1,14 +1,59 @@
 [
     { "caption": "-" },
     {
-        "caption": "Rapscallion Tools: Decode Hex (In Place)",
-        "command": "rapscallion_decode_hex",
-        "args": { "to_new_tab": false, "pattern": "brace" }
-    },
-    {
-        "caption": "Rapscallion Tools: Decode Hex (To New Tab)",
-        "command": "rapscallion_decode_hex",
-        "args": { "to_new_tab": true, "pattern": "brace" }
+        "caption": "Rapscallion Tools",
+        "id": "rapscallion_tools_root",
+        "children": [
+            {
+                "caption": "Hex Decoder",
+                "id": "rapscallion_hex_submenu",
+                "children": [
+                    {
+                        "caption": "Decode Hex Characters (In Place)",
+                        "command": "rapscallion_decode_hex",
+                        "args": { "to_new_tab": false, "pattern": "brace" }
+                    },
+                    {
+                        "caption": "Decode Hex Characters (To New Tab)",
+                        "command": "rapscallion_decode_hex",
+                        "args": { "to_new_tab": true, "pattern": "brace" }
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Decode All Hex Formats (In Place)",
+                        "command": "rapscallion_decode_hex",
+                        "args": { "to_new_tab": false, "pattern": "all" }
+                    },
+                    {
+                        "caption": "Decode All Hex Formats (To New Tab)",
+                        "command": "rapscallion_decode_hex",
+                        "args": { "to_new_tab": true, "pattern": "all" }
+                    }
+                ]
+            },
+            {
+                "caption": "Utilities",
+                "id": "rapscallion_utilities_submenu",
+                "children": [
+                    {
+                        "caption": "Insert Timestamp",
+                        "command": "insert_timestamp"
+                    },
+                    {
+                        "caption": "Jump to Matching XML Tag",
+                        "command": "jump_xml_tag"
+                    },
+                    { "caption": "-" },
+                    {
+                        "caption": "Show Status Bar Details",
+                        "command": "rapscallion_show_status_details"
+                    },
+                    {
+                        "caption": "Toggle Status Bar Info",
+                        "command": "rapscallion_toggle_status_bar"
+                    }
+                ]
+            }
+        ]
     }
 ]
-
