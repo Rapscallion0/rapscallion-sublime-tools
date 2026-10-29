@@ -4,44 +4,39 @@
         "caption": "Rapscallion Tools",
         "id": "rapscallion_tools_root",
         "children": [
+            { "caption": "-" },
             {
-                "caption": "SIL & CSV Tools",
-                "id": "rapscallion_sil_submenu",
-                "children": [
-                    {
-                        "caption": "Query with SQLite (Alt+Q)",
-                        "command": "sil_sqlite_query"
-                    },
-                    {
-                        "caption": "Frequency Analysis on Column (Alt+F)",
-                        "command": "sil_column_frequency"
-                    },
-                    {
-                        "caption": "Go to Column / Schema (Alt+G)",
-                        "command": "sil_goto_column"
-                    },
-                    {
-                        "caption": "Align Table Columns (Alt+A)",
-                        "command": "sil_align_columns"
-                    },
-                    {
-                        "caption": "Open SQL Scratchpad (Ctrl+Alt+Q)",
-                        "command": "sil_open_scratchpad"
-                    },
-                    { "caption": "-" },
-                    {
-                        "caption": "Query Presets & History",
-                        "command": "sil_query_presets"
-                    },
-                    {
-                        "caption": "Toggle Result Format (CSV/MD)",
-                        "command": "sil_toggle_result_format"
-                    },
-                    {
-                        "caption": "Toggle Field Hover",
-                        "command": "sil_toggle_hover"
-                    }
-                ]
+                "caption": "SIL: Query with SQLite (Alt+Q)",
+                "command": "sil_sqlite_query"
+            },
+            {
+                "caption": "SIL: Frequency Analysis on Column (Alt+F)",
+                "command": "sil_column_frequency"
+            },
+            {
+                "caption": "SIL: Go to Column / Schema (Alt+G)",
+                "command": "sil_goto_column"
+            },
+            {
+                "caption": "SIL: Align Table Columns (Alt+A)",
+                "command": "sil_align_columns"
+            },
+            {
+                "caption": "SIL: Open SQL Scratchpad (Ctrl+Alt+Q)",
+                "command": "sil_open_scratchpad"
+            },
+            { "caption": "-" },
+            {
+                "caption": "SIL: Query Presets & History",
+                "command": "sil_query_presets"
+            },
+            {
+                "caption": "SIL: Toggle Result Format (CSV/MD)",
+                "command": "sil_toggle_result_format"
+            },
+            {
+                "caption": "SIL: Toggle Field Hover",
+                "command": "sil_toggle_hover"
             }
         ]
     }

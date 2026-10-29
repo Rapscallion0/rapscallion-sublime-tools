@@ -29,7 +29,7 @@ jobs:
       - name: Build .sublime-package Archives
         run: |
           mkdir -p dist
-          for pkg in RapscallionBookmarks RapscallionNotes RapscallionSILTools RapscallionSyntax RapscallionTools RapscallionZip; do
+          for pkg in RapscallionBookmarks RapscallionEWicParser RapscallionNotes RapscallionSILTools RapscallionSyntax RapscallionTools RapscallionZip; do
             if [ -d "$pkg" ]; then
               echo "Packaging $pkg..."
               cd "$pkg"
