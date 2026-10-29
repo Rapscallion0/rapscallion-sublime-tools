@@ -43,6 +43,22 @@ def get_plugin_setting(key: str, default=None):
     return settings.get(key, default)
 
 
+def get_report_destination() -> str:
+    """Resolve active destination: 'markdown', 'browser', or 'both'."""
+    settings = sublime.load_settings(SETTINGS_FILE)
+    dest = settings.get("report_destination", None)
+    if dest in ("markdown", "browser", "both"):
+        return dest
+    # Fallback to legacy boolean if present
+    if settings.get("auto_open_in_browser", False):
+        return "both"
+    # Fallback to deprecated report_view_mode if present
+    legacy_mode = settings.get("report_view_mode", None)
+    if legacy_mode in ("markdown", "browser", "both"):
+        return legacy_mode
+    return "markdown"
+
+
 def browse_for_apl_file() -> Optional[str]:
     """Open a native OS file dialog to select an APL file."""
     # 1. Try tkinter if available
@@ -335,6 +351,51 @@ class EwicViewReportInBrowserCommand(sublime_plugin.TextCommand):
         sublime.status_message(f"Opened report in browser: {os.path.basename(path)}")
 
 
+DESTINATION_OPTIONS = [
+    {
+        "id": "markdown",
+        "title": "Markdown Only (Sublime Tab)",
+        "desc": "Open report as a Markdown scratch view in Sublime Text (Default)"
+    },
+    {
+        "id": "browser",
+        "title": "Web Browser Only (External HTML)",
+        "desc": "Launch the report in your system default web browser (no Sublime tab created)"
+    },
+    {
+        "id": "both",
+        "title": "Both (Sublime Tab & Web Browser)",
+        "desc": "Open in a Sublime Text Markdown tab AND launch in your default web browser"
+    }
+]
+
+
+class EwicSetReportDestinationCommand(sublime_plugin.WindowCommand):
+    """Interactive Quick Panel to set report output destination."""
+
+    def run(self):
+        current_dest = get_report_destination()
+        items = []
+        selected_idx = 0
+        for idx, opt in enumerate(DESTINATION_OPTIONS):
+            is_cur = (opt["id"] == current_dest)
+            if is_cur:
+                selected_idx = idx
+            prefix = "✓ " if is_cur else "   "
+            items.append([f"{prefix}{opt['title']}", opt["desc"]])
+
+        def on_select(idx: int):
+            if idx < 0:
+                return
+            chosen = DESTINATION_OPTIONS[idx]["id"]
+            settings = sublime.load_settings(SETTINGS_FILE)
+            settings.set("report_destination", chosen)
+            sublime.save_settings(SETTINGS_FILE)
+            sublime.status_message(f"WIC Report Destination set to: {DESTINATION_OPTIONS[idx]['title']}")
+
+        self.window.show_quick_panel(items, on_select, selected_index=selected_idx)
+
+
 # ==============================================================================
 # Helper Dialogs & Presentation Logic
 # ==============================================================================
@@ -440,43 +501,34 @@ def display_audit_results(
     markdown_content: str,
     clipboard_table: str
 ) -> None:
-    """Render markdown report in editor and manage viewing mode & clipboard export."""
-    view_mode = get_plugin_setting("report_view_mode", "markdown_text")
+    """Render markdown report according to report_destination & manage clipboard export."""
+    dest = get_report_destination()
 
-    # 1. ALWAYS create the Markdown text view tab first
-    layout_style = get_plugin_setting("split_view_layout", "columns")
-    if view_mode == "both" and layout_style == "columns" and window.num_groups() == 1:
-        # Set 2-column layout: left column for Markdown text, right column for HTML sheet
-        window.set_layout({
-            "cols": [0.0, 0.5, 1.0],
-            "rows": [0.0, 1.0],
-            "cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
-        })
-        _create_markdown_view(window, tab_title, markdown_content, group=0)
-    else:
+    # 1. Create Sublime Text Markdown view if requested
+    if dest in ("markdown", "both"):
         _create_markdown_view(window, tab_title, markdown_content)
 
-    # 2. Render native HTML sheet if requested
-    if view_mode in ("html_sheet", "both"):
-        minihtml = markdown_to_minihtml(markdown_content, title=tab_title)
-        try:
-            target_group = 1 if (view_mode == "both" and layout_style == "columns" and window.num_groups() > 1) else -1
-            window.new_html_sheet(tab_title, minihtml, group=target_group)
-        except Exception:
-            pass
-
-    # 3. Open in browser if requested
-    if view_mode == "browser":
+    # 2. Open in web browser if requested
+    if dest in ("browser", "both"):
         try:
             open_in_browser(markdown_content, title=tab_title)
-        except Exception:
-            pass
+        except Exception as e:
+            sublime.error_message(f"Failed to open report in browser: {e}")
 
-    # 4. Clipboard management
+    # 3. Clipboard management
     auto_copy = get_plugin_setting("auto_copy_to_clipboard", True)
     if auto_copy and clipboard_table:
         sublime.set_clipboard(clipboard_table)
-        sublime.status_message("WIC balance table copied to clipboard")
+
+    # 4. Status bar feedback
+    if dest == "browser":
+        status_msg = "WIC audit report opened in browser"
+    elif dest == "both":
+        status_msg = "WIC audit report opened in editor and browser"
     else:
-        sublime.status_message("WIC audit report generated")
+        status_msg = "WIC audit report generated in editor"
+
+    if auto_copy and clipboard_table:
+        status_msg += " (balance table copied to clipboard)"
+    sublime.status_message(status_msg)
 

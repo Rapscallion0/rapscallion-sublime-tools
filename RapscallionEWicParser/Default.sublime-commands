@@ -28,6 +28,10 @@
         "command": "ewic_view_report_in_browser"
     },
     {
+        "caption": "WIC: Set Report Output Destination…",
+        "command": "ewic_set_report_destination"
+    },
+    {
         "caption": "WIC: Clear Active APL Cache",
         "command": "ewic_clear_apl_cache"
     }

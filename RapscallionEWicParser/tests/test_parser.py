@@ -265,6 +265,29 @@ def test_targeted_audit():
     print("    [+] Targeted Audit PASSED")
 
 
+def test_report_destination_resolution():
+    print("[*] Testing Report Destination Resolution Logic...")
+    def resolve(settings_dict):
+        dest = settings_dict.get("report_destination", None)
+        if dest in ("markdown", "browser", "both"):
+            return dest
+        if settings_dict.get("auto_open_in_browser", False):
+            return "both"
+        legacy_mode = settings_dict.get("report_view_mode", None)
+        if legacy_mode in ("markdown", "browser", "both"):
+            return legacy_mode
+        return "markdown"
+
+    assert resolve({"report_destination": "browser"}) == "browser"
+    assert resolve({"report_destination": "both"}) == "both"
+    assert resolve({"report_destination": "markdown"}) == "markdown"
+    assert resolve({"auto_open_in_browser": True}) == "both"
+    assert resolve({"auto_open_in_browser": False}) == "markdown"
+    assert resolve({}) == "markdown"
+    assert resolve({"report_destination": "invalid"}) == "markdown"
+    print("    [+] Destination Resolution Logic PASSED")
+
+
 if __name__ == "__main__":
     print("==================================================")
     print("Starting RapscallionEWicParser Test Suite")
@@ -275,6 +298,7 @@ if __name__ == "__main__":
     test_rbs_audit(apl_db)
     test_wineps_audit(apl_db)
     test_targeted_audit()
+    test_report_destination_resolution()
     print("==================================================")
     print("ALL TESTS PASSED SUCCESSFULLY!")
     print("==================================================")

@@ -88,11 +88,17 @@ sequenceDiagram
 
 ## Configuration Settings
 
-Access settings via **Preferences > Package Settings > Rapscallion BuyPass E-WIC Parser > Settings**:
+Access settings via **Preferences > Package Settings > Rapscallion E-WIC Parser > Settings**:
 
 ```json
 {
-    // Whether to automatically open generated audit reports in your default web browser
+    // Where to open generated audit reports:
+    //  - "markdown" : Open only as a Markdown document in a Sublime Text tab (Default)
+    //  - "browser"  : Open only in your system default web browser (no Sublime tab)
+    //  - "both"     : Open in both a Sublime Text Markdown tab AND the web browser
+    "report_destination": "markdown",
+
+    // Backward-compatibility alias for "both"
     "auto_open_in_browser": false,
 
     // Whether to automatically copy the clean Markdown reconciliation table to the clipboard
