@@ -1,4 +1,7 @@
 [
+    // =========================================================================
+    // Rapscallion Bookmarks: Direct Legacy Shortcuts (Preserved)
+    // =========================================================================
     {
         "keys": ["alt+b"],
         "command": "rapscallion_quick_bookmarks"
@@ -43,6 +46,8 @@
         "keys": ["alt+shift+f2"],
         "command": "rapscallion_prev_project_bookmark"
     },
+
+    // Panel Navigation Context
     {
         "keys": ["enter"],
         "command": "rapscallion_panel_jump",
@@ -77,5 +82,57 @@
         "context": [
             { "key": "setting.rapscallion_bookmarks_panel", "operator": "equal", "operand": true }
         ]
+    },
+
+    // =========================================================================
+    // Rapscallion Bookmarks: Key Chords (Prefix: Ctrl+Alt+B)
+    // =========================================================================
+
+    // Toggle Bookmark: Ctrl+Alt+B, T
+    {
+        "keys": ["ctrl+alt+b", "t"],
+        "command": "rapscallion_toggle_bookmark"
+    },
+
+    // Add Named Bookmark: Ctrl+Alt+B, N
+    {
+        "keys": ["ctrl+alt+b", "n"],
+        "command": "rapscallion_set_named_bookmark"
+    },
+
+    // Quick Panel Navigator: Ctrl+Alt+B, Q
+    {
+        "keys": ["ctrl+alt+b", "q"],
+        "command": "rapscallion_quick_bookmarks"
+    },
+
+    // Toggle Bottom Bookmarks Panel: Ctrl+Alt+B, P
+    {
+        "keys": ["ctrl+alt+b", "p"],
+        "command": "rapscallion_toggle_panel"
+    },
+
+    // Toggle Side Panel: Ctrl+Alt+B, S (Template)
+    // {
+    //     "keys": ["ctrl+alt+b", "s"],
+    //     "command": "rapscallion_toggle_side_panel"
+    // },
+
+    // Clear Bookmarks in Current File: Ctrl+Alt+B, C
+    {
+        "keys": ["ctrl+alt+b", "c"],
+        "command": "rapscallion_clear_file_bookmarks"
+    },
+
+    // Clear All Bookmarks Across Project: Ctrl+Alt+B, A (Template)
+    // {
+    //     "keys": ["ctrl+alt+b", "a"],
+    //     "command": "rapscallion_clear_all_bookmarks"
+    // },
+
+    // Export Bookmarks to Markdown: Ctrl+Alt+B, E
+    {
+        "keys": ["ctrl+alt+b", "e"],
+        "command": "rapscallion_export_markdown"
     }
 ]

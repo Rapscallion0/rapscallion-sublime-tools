@@ -6,14 +6,14 @@ A modular, high-performance productivity suite designed for Sublime Text 4 power
 
 ## Suite Packages
 
-| Package | Purpose | Primary Shortcuts |
+| Package | Purpose | Primary Shortcuts & Key Chords |
 |---|---|---|
-| **[RapscallionTools](RapscallionTools/)** | Core environment utilities: hex character decoder, status bar path/git branch display, external media opener, folder session manager, and next/previous file cycling. | `Alt + H`<br>`Alt + Shift + H`<br>`Alt + Shift + E`<br>`Alt + [` / `Alt + ]` |
-| **[RapscallionBookmarks](RapscallionBookmarks/)** | Visual bookmark manager featuring a floating Quick Panel with live scrolling preview and a dedicated bottom dock output panel. | `Alt + B`<br>`Alt + Shift + B`<br>`Ctrl + F2` |
-| **[RapscallionNotes](RapscallionNotes/)** | Instant project scratchpad and Markdown notes editor with custom template engine. | `Alt + N`<br>`Alt + Shift + N` |
-| **[RapscallionSILTools](RapscallionSILTools/)** | In-memory SQLite query engine and synchronized 10-column rainbow syntax highlighter for SIL database dumps and CSV logs. | `Alt + Q` |
-| **[RapscallionEWicParser](RapscallionEWicParser/)** | Buypass/FIS, RBSLynk ISO, & WinEPS E-WIC POS log decoder, multi-state TLV unpacker, APL catalog cross-referencing, and transaction reconciliation. | `Ctrl + Alt + W`<br>`WIC: Analyze Transaction` |
-| **[RapscallionZip](RapscallionZip/)** | Safe, read-only ZIP, JAR, WAR, and NUPKG archive inspector with virtual file navigation. | Mouse / Command |
+| **[RapscallionTools](RapscallionTools/)** | Core environment utilities: hex character decoder, status bar path/git branch display, external media opener, folder session manager, and next/previous file cycling. | `Ctrl + Alt + U` *(Utilities chord)*<br>`Ctrl + Alt + H` *(Hex chord)*<br>`Shift + F5` / `Alt + H` |
+| **[RapscallionBookmarks](RapscallionBookmarks/)** | Visual bookmark manager featuring a floating Quick Panel with live scrolling preview and a dedicated bottom dock output panel. | `Ctrl + Alt + B` *(Bookmarks chord)*<br>`Alt + B` / `F2` / `Ctrl + F2` |
+| **[RapscallionNotes](RapscallionNotes/)** | Instant project scratchpad and Markdown notes editor with custom template engine. | `Ctrl + Alt + N` *(Notes chord)* |
+| **[RapscallionSILTools](RapscallionSILTools/)** | In-memory SQLite query engine and synchronized 10-column rainbow syntax highlighter for SIL database dumps and CSV logs. | `Ctrl + Alt + S` *(SIL chord)*<br>`Alt + Q` / `Alt + F` / `Alt + G` |
+| **[RapscallionEWicParser](RapscallionEWicParser/)** | Buypass/FIS, RBSLynk ISO, & WinEPS E-WIC POS log decoder, multi-state TLV unpacker, APL catalog cross-referencing, and transaction reconciliation. | `Ctrl + Alt + W` *(eWIC chord)* |
+| **[RapscallionZip](RapscallionZip/)** | Safe, read-only ZIP, JAR, WAR, and NUPKG archive inspector with virtual file navigation. | `Ctrl + Alt + Z` *(Zip chord)* |
 | **[RapscallionSyntax](RapscallionSyntax/)** | Specialized syntax definitions and color schemes, including custom SL4 log highlighting. | Auto-assigned |
 
 ---

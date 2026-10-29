@@ -1,0 +1,53 @@
+[
+    // Direct shortcut (legacy compatibility)
+    {
+        "keys": ["ctrl+alt+w"],
+        "command": "ewic_parse_selection"
+    },
+
+    // =========================================================================
+    // Rapscallion E-WIC Parser: Key Chords (Prefix: Ctrl+Alt+W)
+    // =========================================================================
+
+    // Parse Selected TLV Balance String: Ctrl+Alt+W, S
+    {
+        "keys": ["ctrl+alt+w", "s"],
+        "command": "ewic_parse_selection"
+    },
+
+    // Analyze Transaction by Invoice / Auth / Seq #: Ctrl+Alt+W, I
+    {
+        "keys": ["ctrl+alt+w", "i"],
+        "command": "ewic_analyze_transaction_by_id"
+    },
+
+    // Full Audit of Active Log File: Ctrl+Alt+W, F
+    {
+        "keys": ["ctrl+alt+w", "f"],
+        "command": "ewic_audit_log"
+    },
+
+    // View Report in Default Browser: Ctrl+Alt+W, B
+    {
+        "keys": ["ctrl+alt+w", "b"],
+        "command": "ewic_view_report_in_browser"
+    },
+
+    // Set Report Output Destination (Markdown / Browser / Both): Ctrl+Alt+W, D
+    {
+        "keys": ["ctrl+alt+w", "d"],
+        "command": "ewic_set_report_destination"
+    },
+
+    // Load APL Catalog File: Ctrl+Alt+W, L
+    {
+        "keys": ["ctrl+alt+w", "l"],
+        "command": "ewic_load_apl_file"
+    },
+
+    // Clear Active APL Cache: Ctrl+Alt+W, C
+    {
+        "keys": ["ctrl+alt+w", "c"],
+        "command": "ewic_clear_apl_cache"
+    }
+]

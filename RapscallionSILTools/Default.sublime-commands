@@ -8,6 +8,14 @@
         }
     },
     {
+        "caption": "Preferences: Rapscallion Tools - SIL Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionSILTools/Default ($platform).sublime-keymap",
+            "default": "[\n    $0\n]\n"
+        }
+    },
+    {
         "caption": "Rapscallion Tools: SIL - Query with SQLite",
         "command": "sil_sqlite_query"
     },

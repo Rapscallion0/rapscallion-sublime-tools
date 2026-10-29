@@ -35,12 +35,29 @@ Essential editor utilities, session management, media preview routing, navigatio
 - Automatically preserves open tabs, cursor selection regions, and viewport scroll positions per project folder under `.sublime/folder-session.json`.
 - Restores project window state on workspace launch without corrupting temporary buffers.
 
-### Micro Navigation & Editing Shortcuts
-- **Hex Decoder In-Place (`Alt+H`):** Decodes `{HH}` tokens in selection or full buffer.
-- **Hex Decoder to New Tab (`Alt+Shift+H`):** Decodes `{HH}` tokens into a new scratch tab.
-- **Jump to First Match (`Ctrl+F3`):** Shifts focus and positions cursor at match position 0 (`jump_to_first_match.py`).
-- **XML Tag Jumper (`Alt+M`):** Structural traversal between opening and closing tags in XML/HTML (`jump_xml_tag.py`).
-- **Timestamp Insertion (`Shift+F5`, `Ctrl+Shift+F5`):** Fast insertion of ISO timestamps or date-only stamps (`insert_timestamp.py`).
+### Micro Navigation & Key Chords
+
+All utilities feature organized key chords alongside direct shortcuts:
+
+#### General Utilities (`Ctrl+Alt+U` / macOS `Super+Alt+U`)
+| Key Chord | Direct Shortcut | Action |
+| :--- | :--- | :--- |
+| `Ctrl+Alt+U, T` | `Shift+F5` | Insert full timestamp `[YYYY-MM-DD HH:MM:SS]` |
+| `Ctrl+Alt+U, D` | `Ctrl+Shift+F5` | Insert date only `[YYYY-MM-DD]` |
+| `Ctrl+Alt+U, H` | — | Insert time only `[HH:MM:SS]` |
+| `Ctrl+Alt+U, I` | — | Insert ISO 8601 UTC timestamp `YYYY-MM-DDTHH:MM:SSZ` |
+| `Ctrl+Alt+U, X` | `Alt+M` (in XML) | Jump between opening and closing XML tags |
+| `Ctrl+Alt+U, M` | `Ctrl+F3` | Jump to first search match position |
+| `Ctrl+Alt+U, S` | — | Toggle real-time status bar telemetry on/off |
+| `Ctrl+Alt+U, P` | — | Show detailed status attributes quick panel |
+
+#### Hex Decoder (`Ctrl+Alt+H` / macOS `Super+Alt+H`)
+| Key Chord | Direct Shortcut | Action |
+| :--- | :--- | :--- |
+| `Ctrl+Alt+H, B` | `Alt+H` | Decode `{HH}` tokens in place |
+| `Ctrl+Alt+H, T` | `Alt+Shift+H` | Decode `{HH}` tokens to new scratch tab |
+| `Ctrl+Alt+H, A` | — | Decode all hex formats (`{HH}`, `%HH`, `\xHH`) in place |
+| `Ctrl+Alt+H, N` | — | Decode all hex formats to new scratch tab |
 
 ---
 

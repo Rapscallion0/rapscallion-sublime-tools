@@ -39,19 +39,23 @@ A high-performance Sublime Text 4 plugin package to decode, inspect, and reconci
 
 ---
 
-## Keybindings & Shortcuts
+## Keybindings & Key Chords
 
-| Shortcut | Command Caption | Purpose |
-| :--- | :--- | :--- |
-| `ctrl+alt+w` *(Win/Linux)*<br>`super+alt+w` *(macOS)* | **WIC: Parse Selected TLV Balance String** | Parse cursor line or highlighted `dat="EA..."` string |
-| *(Command Palette)* | **WIC: Analyze Transaction by Invoice / Sequence / Auth #** | Filter and audit a specific transaction |
-| *(Command Palette)* | **WIC: Audit All Transactions in Log** | Audit all E-WIC transactions in active log buffer |
-| *(Command Palette / Context Menu)* | **WIC: View Report in Browser** | Open report in system web browser with responsive tables & print styling |
-| *(Command Palette)* | **WIC: Clear Active APL Cache** | Reset the window's session-cached APL catalog |
+All commands feature intuitive key chords prefixed by **`Ctrl+Alt+W`** (macOS: **`Super+Alt+W`**):
+
+| Key Chord | Alternate / Direct | Command Caption | Purpose |
+| :--- | :--- | :--- | :--- |
+| `Ctrl+Alt+W, S` | `Ctrl+Alt+W` | **WIC: Parse Selected TLV Balance String** | Parse cursor line or highlighted `dat="EA..."` string |
+| `Ctrl+Alt+W, I` | *(Palette / Menu)* | **WIC: Analyze Transaction by Invoice / Sequence / Auth #** | Targeted audit by Invoice, STAN/Sequence, or Auth ID |
+| `Ctrl+Alt+W, F` | *(Palette / Menu)* | **WIC: Audit All Transactions in Log** | Audit all E-WIC transactions in active log buffer |
+| `Ctrl+Alt+W, B` | *(Palette / Menu)* | **WIC: View Report in Browser** | Open report in system web browser with responsive tables |
+| `Ctrl+Alt+W, D` | *(Palette / Menu)* | **WIC: Set Report Output Destination…** | Quick switcher (Markdown / Browser / Both) |
+| `Ctrl+Alt+W, L` | *(Palette / Menu)* | **WIC: Load APL Catalog File…** | Explicitly browse and cache an APL catalog file |
+| `Ctrl+Alt+W, C` | *(Palette / Menu)* | **WIC: Clear Active APL Cache** | Reset the window's session-cached APL catalog |
 
 > [!NOTE]
-> All WIC commands are also accessible directly by right-clicking anywhere in Sublime Text under the **Rapscallion WIC** context submenu.
-> **View in Web Browser** automatically appears in the context menu whenever viewing Markdown files or generated WIC audit reports.
+> All WIC commands are also accessible directly by right-clicking anywhere in Sublime Text under **Rapscallion Tools > E-WIC Log Parser**.
+> Customize keybindings via **Preferences > Package Settings > Rapscallion E-WIC Parser > Key Bindings**.
 
 ---
 

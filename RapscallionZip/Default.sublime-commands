@@ -8,6 +8,14 @@
         }
     },
     {
+        "caption": "Preferences: Rapscallion Tools - Zip Explorer Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionZip/Default ($platform).sublime-keymap",
+            "default": "[\n    $0\n]\n"
+        }
+    },
+    {
         "caption": "Rapscallion Tools: Zip - Clear Extracted Cache",
         "command": "rapscallion_clear_zip_cache"
     },

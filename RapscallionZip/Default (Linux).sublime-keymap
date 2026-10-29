@@ -1,0 +1,35 @@
+[
+    // =========================================================================
+    // Rapscallion Zip: Direct In-View Shortcuts (Preserved)
+    // =========================================================================
+    {
+        "keys": ["enter"],
+        "command": "rapscallion_activate_zip_item",
+        "context": [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["ctrl+f"],
+        "command": "rapscallion_filter_zip",
+        "context": [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "equal", "operand": true }
+        ]
+    },
+
+    // =========================================================================
+    // Rapscallion Zip: Key Chords (Prefix: Ctrl+Alt+Z)
+    // =========================================================================
+
+    // Filter Current Archive Tree: Ctrl+Alt+Z, F
+    {
+        "keys": ["ctrl+alt+z", "f"],
+        "command": "rapscallion_filter_zip"
+    },
+
+    // Clear Extracted Zip Cache: Ctrl+Alt+Z, C
+    {
+        "keys": ["ctrl+alt+z", "c"],
+        "command": "rapscallion_clear_zip_cache"
+    }
+]

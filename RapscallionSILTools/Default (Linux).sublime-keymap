@@ -1,0 +1,90 @@
+[
+    // =========================================================================
+    // Rapscallion SIL Tools: Direct Legacy Shortcuts (Preserved)
+    // =========================================================================
+    {
+        "keys": ["alt+q"],
+        "command": "sil_sqlite_query"
+    },
+    {
+        "keys": ["alt+f"],
+        "command": "sil_column_frequency"
+    },
+    {
+        "keys": ["alt+g"],
+        "command": "sil_goto_column"
+    },
+    {
+        "keys": ["alt+a"],
+        "command": "sil_align_columns"
+    },
+    {
+        "keys": ["ctrl+alt+q"],
+        "command": "sil_open_scratchpad"
+    },
+    {
+        "keys": ["ctrl+enter"],
+        "command": "sil_execute_scratchpad",
+        "context": [
+            { "key": "setting.is_sil_scratchpad", "operator": "equal", "operand": true }
+        ]
+    },
+
+    // =========================================================================
+    // Rapscallion SIL Tools: Key Chords (Prefix: Ctrl+Alt+S)
+    // =========================================================================
+
+    // Query SIL Table with SQLite: Ctrl+Alt+S, Q
+    {
+        "keys": ["ctrl+alt+s", "q"],
+        "command": "sil_sqlite_query"
+    },
+
+    // Column Frequency Analysis: Ctrl+Alt+S, F
+    {
+        "keys": ["ctrl+alt+s", "f"],
+        "command": "sil_column_frequency"
+    },
+
+    // Go to Column / Schema Inspector: Ctrl+Alt+S, G
+    {
+        "keys": ["ctrl+alt+s", "g"],
+        "command": "sil_goto_column"
+    },
+
+    // Align Table Columns: Ctrl+Alt+S, A
+    {
+        "keys": ["ctrl+alt+s", "a"],
+        "command": "sil_align_columns"
+    },
+
+    // Open SQL Query Scratchpad: Ctrl+Alt+S, S
+    {
+        "keys": ["ctrl+alt+s", "s"],
+        "command": "sil_open_scratchpad"
+    },
+
+    // Query Presets & History: Ctrl+Alt+S, P
+    {
+        "keys": ["ctrl+alt+s", "p"],
+        "command": "sil_query_presets"
+    },
+
+    // Toggle Result Format (CSV / Markdown): Ctrl+Alt+S, R
+    {
+        "keys": ["ctrl+alt+s", "r"],
+        "command": "sil_toggle_result_format"
+    },
+
+    // Toggle Field Hover Inspector: Ctrl+Alt+S, H
+    {
+        "keys": ["ctrl+alt+s", "h"],
+        "command": "sil_toggle_hover"
+    },
+
+    // Open SIL Documentation: Ctrl+Alt+S, D
+    {
+        "keys": ["ctrl+alt+s", "d"],
+        "command": "sil_show_docs"
+    }
+]

@@ -8,6 +8,14 @@
         }
     },
     {
+        "caption": "Preferences: Rapscallion E-WIC Parser Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionEWicParser/Default ($platform).sublime-keymap",
+            "default": "[\n\t$0\n]\n"
+        }
+    },
+    {
         "caption": "WIC: Analyze Transaction by Invoice / Sequence / Auth #",
         "command": "ewic_analyze_transaction_by_id"
     },

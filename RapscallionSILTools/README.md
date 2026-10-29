@@ -25,16 +25,22 @@ It features synchronized rainbow column highlighting, interactive hover tooltips
 
 ---
 
-## Key Bindings
+## Key Bindings & Key Chords
 
-| Shortcut | Context | Command | Description |
-|---|---|---|---|
-| `Alt + Q` | SIL view or CSV file | `sil_sqlite_query` | Ingests data and opens the SQLite query input panel |
-| `Alt + F` | SIL view or CSV file | `sil_column_frequency` | Runs instant frequency distribution analysis on current column |
-| `Alt + G` | SIL view or CSV file | `sil_goto_column` | Opens Column Jump navigator & Schema Inspector |
-| `Alt + A` | SIL view or CSV file | `sil_align_columns` | Vertically aligns table columns across rows (undo with `Ctrl+Z`) |
-| `Ctrl + Alt + Q` | SIL view or CSV file | `sil_open_scratchpad` | Opens dedicated multi-line SQL Query Scratchpad tab |
-| `Ctrl + Enter` | In SQL Scratchpad | `sil_execute_scratchpad` | Executes active query or selected text and opens results |
+All SIL tools feature unified key chords with prefix **`Ctrl+Alt+S`** (macOS: **`Super+Alt+S`**), alongside direct single-stroke shortcuts:
+
+| Key Chord | Direct Shortcut | Context | Command | Description |
+|---|---|---|---|---|
+| `Ctrl+Alt+S, Q` | `Alt + Q` | SIL view or CSV file | `sil_sqlite_query` | Ingests data and opens the SQLite query input panel |
+| `Ctrl+Alt+S, F` | `Alt + F` | SIL view or CSV file | `sil_column_frequency` | Runs instant frequency distribution analysis on current column |
+| `Ctrl+Alt+S, G` | `Alt + G` | SIL view or CSV file | `sil_goto_column` | Opens Column Jump navigator & Schema Inspector |
+| `Ctrl+Alt+S, A` | `Alt + A` | SIL view or CSV file | `sil_align_columns` | Vertically aligns table columns across rows (undo with `Ctrl+Z`) |
+| `Ctrl+Alt+S, S` | `Ctrl + Alt + Q` | SIL view or CSV file | `sil_open_scratchpad` | Opens dedicated multi-line SQL Query Scratchpad tab |
+| `Ctrl+Alt+S, P` | — | SIL view or CSV file | `sil_query_presets` | Opens Query Presets & History panel |
+| `Ctrl+Alt+S, R` | — | Anywhere | `sil_toggle_result_format` | Toggles query result format between CSV and Markdown |
+| `Ctrl+Alt+S, H` | — | Anywhere | `sil_toggle_hover` | Toggles field hover inspect tooltips |
+| `Ctrl+Alt+S, D` | — | Anywhere | `sil_show_docs` | Opens this package README documentation |
+| — | `Ctrl + Enter` | In SQL Scratchpad | `sil_execute_scratchpad` | Executes active query or selected text and opens results |
 
 ---
 

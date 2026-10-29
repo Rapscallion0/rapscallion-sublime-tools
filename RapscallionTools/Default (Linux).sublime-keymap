@@ -1,0 +1,130 @@
+[
+    // =========================================================================
+    // Rapscallion Tools: Direct Legacy Shortcuts (Preserved)
+    // =========================================================================
+    {
+        "keys": ["ctrl+f3"],
+        "command": "jump_to_first_match"
+    },
+    {
+        "keys": ["alt+m"],
+        "command": "jump_xml_tag",
+        "context": [
+            { "key": "selector", "operator": "equal", "operand": "text.xml, embedding.xml" }
+        ]
+    },
+    {
+        "keys": ["shift+f5"],
+        "command": "insert_timestamp",
+        "args": { "format": "[%Y-%m-%d %H:%M:%S] " }
+    },
+    {
+        "keys": ["ctrl+shift+f5"],
+        "command": "insert_timestamp",
+        "args": { "format": "[%Y-%m-%d] " }
+    },
+    {
+        "keys": ["alt+h"],
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": false, "pattern": "brace" }
+    },
+    {
+        "keys": ["alt+shift+h"],
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": true, "pattern": "brace" }
+    },
+
+    // =========================================================================
+    // Rapscallion Utilities: Key Chords (Prefix: Ctrl+Alt+U)
+    // =========================================================================
+
+    // Insert Full Timestamp: Ctrl+Alt+U, T -> [2026-10-29 15:30:00]
+    {
+        "keys": ["ctrl+alt+u", "t"],
+        "command": "insert_timestamp",
+        "args": { "format": "[%Y-%m-%d %H:%M:%S] " }
+    },
+
+    // Insert Date Only: Ctrl+Alt+U, D -> [2026-10-29]
+    {
+        "keys": ["ctrl+alt+u", "d"],
+        "command": "insert_timestamp",
+        "args": { "format": "[%Y-%m-%d] " }
+    },
+
+    // Insert Time Only: Ctrl+Alt+U, H -> [15:30:00]
+    {
+        "keys": ["ctrl+alt+u", "h"],
+        "command": "insert_timestamp",
+        "args": { "format": "[%H:%M:%S] " }
+    },
+
+    // Insert ISO 8601 UTC Timestamp: Ctrl+Alt+U, I -> 2026-10-29T15:30:00Z
+    {
+        "keys": ["ctrl+alt+u", "i"],
+        "command": "insert_timestamp",
+        "args": { "format": "%Y-%m-%dT%H:%M:%SZ" }
+    },
+
+    // Jump to Matching XML Tag: Ctrl+Alt+U, X
+    {
+        "keys": ["ctrl+alt+u", "x"],
+        "command": "jump_xml_tag"
+    },
+
+    // Jump to First Match: Ctrl+Alt+U, M
+    {
+        "keys": ["ctrl+alt+u", "m"],
+        "command": "jump_to_first_match"
+    },
+
+    // Toggle Status Bar Info: Ctrl+Alt+U, S
+    {
+        "keys": ["ctrl+alt+u", "s"],
+        "command": "rapscallion_toggle_status_bar"
+    },
+
+    // Show Status Bar Details Panel: Ctrl+Alt+U, P
+    {
+        "keys": ["ctrl+alt+u", "p"],
+        "command": "rapscallion_show_status_details"
+    },
+
+    // Restore Folder Session: Ctrl+Alt+U, R (Template)
+    // {
+    //     "keys": ["ctrl+alt+u", "r"],
+    //     "command": "restore_folder_session"
+    // },
+
+    // =========================================================================
+    // Rapscallion Hex Decoder: Key Chords (Prefix: Ctrl+Alt+H)
+    // =========================================================================
+
+    // Decode Brace {0x..} In Place: Ctrl+Alt+H, B
+    {
+        "keys": ["ctrl+alt+h", "b"],
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": false, "pattern": "brace" }
+    },
+
+    // Decode Brace {0x..} To New Tab: Ctrl+Alt+H, T
+    {
+        "keys": ["ctrl+alt+h", "t"],
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": true, "pattern": "brace" }
+    },
+
+    // Decode All Hex Formats In Place: Ctrl+Alt+H, A
+    {
+        "keys": ["ctrl+alt+h", "a"],
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": false, "pattern": "all" }
+    },
+
+    // Decode All Hex Formats To New Tab: Ctrl+Alt+H, N
+    {
+        "keys": ["ctrl+alt+h", "n"],
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": true, "pattern": "all" }
+    }
+]

@@ -8,6 +8,14 @@
         }
     },
     {
+        "caption": "Preferences: Rapscallion Tools Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionTools/Default ($platform).sublime-keymap",
+            "default": "[\n\t$0\n]\n"
+        }
+    },
+    {
         "caption": "Rapscallion Tools: Toggle Status Bar Info",
         "command": "rapscallion_toggle_status_bar"
     },

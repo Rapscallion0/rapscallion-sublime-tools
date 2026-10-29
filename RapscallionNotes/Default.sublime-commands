@@ -8,6 +8,14 @@
         }
     },
     {
+        "caption": "Preferences: Rapscallion Tools - Notes Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionNotes/Default ($platform).sublime-keymap",
+            "default": "[\n    $0\n]\n"
+        }
+    },
+    {
         "caption": "Rapscallion Tools: Notes - Create or Open Ticket Note",
         "command": "create_ticket_note"
     },

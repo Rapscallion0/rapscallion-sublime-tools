@@ -8,6 +8,14 @@
         }
     },
     {
+        "caption": "Preferences: Rapscallion Tools - Bookmarks Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionBookmarks/Default ($platform).sublime-keymap",
+            "default": "[\n\t$0\n]\n"
+        }
+    },
+    {
         "caption": "Rapscallion Tools: Bookmarks - Toggle Bookmark",
         "command": "rapscallion_toggle_bookmark"
     },
