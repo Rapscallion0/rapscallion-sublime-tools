@@ -1,4 +1,4 @@
-﻿import sublime
+import sublime
 import sublime_plugin
 
 SIL_SYNTAX = "Packages/RapscallionSILTools/SIL (Rainbow).sublime-syntax"
