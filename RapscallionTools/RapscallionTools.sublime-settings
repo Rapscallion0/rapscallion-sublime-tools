@@ -88,5 +88,16 @@
         "*.webm",
         "*.wmv",
         "*.flv"
-    ]
+    ],
+
+    // =========================================================================
+    // Hex Decoder Configuration
+    // =========================================================================
+
+    // Default pattern mode used by the hex character decoder:
+    //   "brace"   = Matches {HH} (e.g., {3A} -> :)
+    //   "percent" = Matches %HH (e.g., %20 -> space)
+    //   "escaped" = Matches \xHH (e.g., \x2E -> .)
+    //   "all"     = Matches all supported formats in sequence
+    "hex_decode_default_pattern": "brace"
 }

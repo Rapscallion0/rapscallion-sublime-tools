@@ -12,18 +12,22 @@ contexts:
     - match: '^RAPSCALLION BOOKMARKS.*$'
       scope: entity.name.section.rapscallion
 
-    - match: '\[(Enter|Del|r|Esc|F5)\]'
+    - match: '\[(Enter|Del|r|t|Esc|F5)\]'
       scope: keyword.control.shortcut.rapscallion
+
+    - match: '\[(MISSING)\]'
+      scope: invalid.illegal.missing.rapscallion
 
     - match: '^([^\s\t].*):$'
       captures:
         1: entity.name.filename.rapscallion
 
-    - match: '^\s{2,4}(\d+)(?::(\d+))?\s{2,}(.*?)$'
+    - match: '^\s{2,4}(\d+)(?::(\d+))?\s{2,}(?:\[([a-zA-Z0-9_\-]+)\]\s+)?(.*?)$'
       captures:
         1: constant.numeric.line.rapscallion
         2: constant.numeric.col.rapscallion
-        3: markup.heading.bookmark.rapscallion
+        3: entity.name.tag.rapscallion
+        4: markup.heading.bookmark.rapscallion
 
     - match: '^\s{6,}(.*?)$'
       scope: comment.line.preview.rapscallion

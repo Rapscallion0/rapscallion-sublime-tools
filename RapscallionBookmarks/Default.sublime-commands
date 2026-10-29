@@ -8,16 +8,52 @@
         }
     },
     {
+        "caption": "Rapscallion Tools: Bookmarks - Toggle Bookmark",
+        "command": "rapscallion_toggle_bookmark"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Add Named Bookmark…",
+        "command": "rapscallion_set_named_bookmark"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Next Bookmark in File",
+        "command": "rapscallion_next_bookmark"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Previous Bookmark in File",
+        "command": "rapscallion_prev_bookmark"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Next Bookmark in Project",
+        "command": "rapscallion_next_project_bookmark"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Previous Bookmark in Project",
+        "command": "rapscallion_prev_project_bookmark"
+    },
+    {
         "caption": "Rapscallion Tools: Bookmarks - Quick Panel (Jump / Search)",
         "command": "rapscallion_quick_bookmarks"
     },
     {
-        "caption": "Rapscallion Tools: Bookmarks - Toggle Bottom Panel",
+        "caption": "Rapscallion Tools: Bookmarks - Toggle Bottom Dock Panel",
         "command": "rapscallion_toggle_panel"
     },
     {
-        "caption": "Rapscallion Tools: Bookmarks - Add or Edit Bookmark",
-        "command": "rapscallion_set_bookmark"
+        "caption": "Rapscallion Tools: Bookmarks - Clear Bookmarks in This File",
+        "command": "rapscallion_clear_file_bookmarks"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Clear All Bookmarks in Project…",
+        "command": "rapscallion_clear_all_bookmarks"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Clean Missing / Dead Bookmarks",
+        "command": "rapscallion_clean_dead_bookmarks"
+    },
+    {
+        "caption": "Rapscallion Tools: Bookmarks - Export Bookmarks to Markdown",
+        "command": "rapscallion_export_markdown"
     },
     {
         "caption": "Rapscallion Tools: Bookmarks - Toggle Side Panel (HTML Sheet)",

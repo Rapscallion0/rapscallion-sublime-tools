@@ -8,10 +8,11 @@ A modular, high-performance productivity suite designed for Sublime Text 4 power
 
 | Package | Purpose | Primary Shortcuts |
 |---|---|---|
-| **[RapscallionTools](RapscallionTools/)** | Core environment utilities: status bar path/git branch display, external media opener, folder session manager, and next/previous file cycling. | `Alt + Shift + E`<br>`Alt + [` / `Alt + ]` |
+| **[RapscallionTools](RapscallionTools/)** | Core environment utilities: hex character decoder, status bar path/git branch display, external media opener, folder session manager, and next/previous file cycling. | `Alt + H`<br>`Alt + Shift + H`<br>`Alt + Shift + E`<br>`Alt + [` / `Alt + ]` |
 | **[RapscallionBookmarks](RapscallionBookmarks/)** | Visual bookmark manager featuring a floating Quick Panel with live scrolling preview and a dedicated bottom dock output panel. | `Alt + B`<br>`Alt + Shift + B`<br>`Ctrl + F2` |
 | **[RapscallionNotes](RapscallionNotes/)** | Instant project scratchpad and Markdown notes editor with custom template engine. | `Alt + N`<br>`Alt + Shift + N` |
 | **[RapscallionSILTools](RapscallionSILTools/)** | In-memory SQLite query engine and synchronized 10-column rainbow syntax highlighter for SIL database dumps and CSV logs. | `Alt + Q` |
+| **[RapscallionBuyPassEWicParser](RapscallionBuyPassEWicParser/)** | Buypass/FIS, RBSLynk ISO, & WinEPS E-WIC POS log decoder, multi-state TLV unpacker, APL catalog cross-referencing, and transaction reconciliation. | `Ctrl + Alt + W`<br>`WIC: Analyze Transaction` |
 | **[RapscallionZip](RapscallionZip/)** | Safe, read-only ZIP, JAR, WAR, and NUPKG archive inspector with virtual file navigation. | Mouse / Command |
 | **[RapscallionSyntax](RapscallionSyntax/)** | Specialized syntax definitions and color schemes, including custom SL4 log highlighting. | Auto-assigned |
 
@@ -35,6 +36,7 @@ rapscallion-sublime-tools/
 ├── .github/
 │   └── workflows/package.yml     # Automated package builder & release CI
 ├── RapscallionBookmarks/          # Bookmarks engine (Quick Panel, Output Panel, Gutters)
+├── RapscallionBuyPassEWicParser/  # E-WIC POS log parser, TLV unpacker & reconciliation engine
 ├── RapscallionNotes/              # Project notes manager & template editor
 ├── RapscallionSILTools/           # SIL SQLite query engine & rainbow syntax
 ├── RapscallionSyntax/             # SL4 log syntax and color schemes

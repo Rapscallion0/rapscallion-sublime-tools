@@ -1,0 +1,7 @@
+[
+    {
+        "keys": ["ctrl+alt+w"],
+        "command": "ewic_parse_selection"
+    }
+]
+

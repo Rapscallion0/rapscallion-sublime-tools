@@ -1,0 +1,78 @@
+{
+    // Whether to automatically open generated audit reports in your default web browser
+    "auto_open_in_browser": false,
+
+    // Whether to automatically copy the clean Markdown balance reconciliation table to the system clipboard
+    "auto_copy_to_clipboard": true,
+
+    // Default fallback state code when none can be inferred from log tokens
+    "default_state": "NZ",
+
+    // Mapping of State Codes / Abbreviations to their 3-digit ANSI/FIPS or Buypass state prefixes
+    "state_prefix_map": {
+        "NZ": "142",
+        "NV": "142",
+        "AL": "001",
+        "AK": "002",
+        "AZ": "004",
+        "AR": "005",
+        "CA": "006",
+        "CO": "008",
+        "CT": "009",
+        "DE": "010",
+        "DC": "011",
+        "FL": "012",
+        "GA": "013",
+        "HI": "015",
+        "ID": "016",
+        "IL": "017",
+        "IN": "018",
+        "IA": "019",
+        "KS": "020",
+        "KY": "021",
+        "LA": "022",
+        "ME": "023",
+        "MD": "024",
+        "MA": "025",
+        "MI": "026",
+        "MN": "027",
+        "MS": "028",
+        "MO": "029",
+        "MT": "030",
+        "NE": "031",
+        "NH": "033",
+        "NJ": "034",
+        "NM": "035",
+        "NY": "036",
+        "NC": "037",
+        "ND": "038",
+        "OH": "039",
+        "OK": "040",
+        "OR": "041",
+        "PA": "042",
+        "RI": "044",
+        "SC": "045",
+        "SD": "046",
+        "TN": "047",
+        "TX": "048",
+        "UT": "049",
+        "VT": "050",
+        "VA": "051",
+        "WA": "053",
+        "WV": "054",
+        "WI": "055",
+        "WY": "056",
+        "PR": "072",
+        "VI": "078",
+        "GU": "066"
+    },
+
+    // Whether to highlight non-zero deductions in bold in generated Markdown tables
+    "highlight_deductions_in_markdown": true,
+
+    // Whether to include benefit categories that had a 0.00 initial balance in the report
+    "show_zero_balance_items": true,
+
+    // Maximum number of lines to search backward when correlating transaction inquiry cycles
+    "correlation_lookback_lines": 1500
+}

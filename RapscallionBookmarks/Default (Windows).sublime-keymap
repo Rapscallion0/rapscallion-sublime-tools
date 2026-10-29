@@ -9,10 +9,39 @@
     },
     {
         "keys": ["ctrl+f2"],
-        "command": "rapscallion_set_bookmark",
+        "command": "rapscallion_toggle_bookmark",
         "context": [
             { "key": "setting.is_rapscallion_zip_view", "operator": "not_equal", "operand": true }
         ]
+    },
+    {
+        "keys": ["ctrl+shift+f2"],
+        "command": "rapscallion_set_named_bookmark",
+        "context": [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "not_equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["f2"],
+        "command": "rapscallion_next_bookmark",
+        "context": [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "not_equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["shift+f2"],
+        "command": "rapscallion_prev_bookmark",
+        "context": [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "not_equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["alt+f2"],
+        "command": "rapscallion_next_project_bookmark"
+    },
+    {
+        "keys": ["alt+shift+f2"],
+        "command": "rapscallion_prev_project_bookmark"
     },
     {
         "keys": ["enter"],
@@ -31,6 +60,13 @@
     {
         "keys": ["r"],
         "command": "rapscallion_panel_rename",
+        "context": [
+            { "key": "setting.rapscallion_bookmarks_panel", "operator": "equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["t"],
+        "command": "rapscallion_panel_set_tag",
         "context": [
             { "key": "setting.rapscallion_bookmarks_panel", "operator": "equal", "operand": true }
         ]

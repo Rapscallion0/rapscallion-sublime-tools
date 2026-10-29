@@ -1,0 +1,38 @@
+[
+    {
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "id": "preferences",
+        "children": [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "Rapscallion BuyPass E-WIC Parser",
+                        "id": "rapscallion-ewic-parser",
+                        "children": [
+                            {
+                                "caption": "Settings",
+                                "command": "edit_settings",
+                                "args": {
+                                    "base_file": "${packages}/RapscallionBuyPassEWicParser/RapscallionBuyPassEWicParser.sublime-settings",
+                                    "default": "{\n\t$0\n}\n"
+                                }
+                            },
+                            {
+                                "caption": "Key Bindings",
+                                "command": "edit_settings",
+                                "args": {
+                                    "base_file": "${packages}/RapscallionBuyPassEWicParser/Default (Windows).sublime-keymap",
+                                    "default": "[\n\t$0\n]\n"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

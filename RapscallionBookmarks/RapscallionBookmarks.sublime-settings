@@ -2,6 +2,46 @@
   // Live scrolling preview in Quick Panel (Alt+B)
   "quick_panel_preview": true,
 
+  // Prevents jarring jump to the first bookmark upon opening Quick Panel
+  "quick_panel_preview_on_open": false,
+
+  // Flash highlight line when navigating to a bookmark
+  "flash_jump": true,
+  "flash_scope": "region.yellowish",
+  "flash_duration_ms": 700,
+
+  // Show bookmark title in Sublime status bar when cursor is on a bookmarked line
+  "status_bar_indicator": true,
+
+  // Show hover popup when hovering over gutter icons
+  "gutter_hover_popup": true,
+
+  // Custom categories and visual scopes for bookmarks
+  "categories": {
+    "todo": {
+      "scope": "region.yellowish",
+      "icon": "bookmark",
+      "label": "TODO"
+    },
+    "bug": {
+      "scope": "region.redish",
+      "icon": "dot",
+      "label": "Bug / Issue"
+    },
+    "review": {
+      "scope": "region.purplish",
+      "icon": "bookmark",
+      "label": "Review"
+    },
+    "note": {
+      "scope": "region.bluish",
+      "icon": "circle",
+      "label": "Note"
+    }
+  },
+  "default_category_scope": "region.yellowish",
+  "default_category_icon": "bookmark",
+
   // Default panel mode: "bottom_panel" (native dock) or "side_dock" (split column)
   "panel_mode": "bottom_panel",
 

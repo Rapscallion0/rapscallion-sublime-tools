@@ -17,6 +17,28 @@
                                 "caption": "Bookmarks",
                                 "children": [
                                     {
+                                        "caption": "Toggle Bookmark (Ctrl+F2)",
+                                        "command": "rapscallion_toggle_bookmark"
+                                    },
+                                    {
+                                        "caption": "Add Named Bookmark… (Ctrl+Shift+F2)",
+                                        "command": "rapscallion_set_named_bookmark"
+                                    },
+                                    {
+                                        "caption": "-"
+                                    },
+                                    {
+                                        "caption": "Next Bookmark (F2)",
+                                        "command": "rapscallion_next_bookmark"
+                                    },
+                                    {
+                                        "caption": "Previous Bookmark (Shift+F2)",
+                                        "command": "rapscallion_prev_bookmark"
+                                    },
+                                    {
+                                        "caption": "-"
+                                    },
+                                    {
                                         "caption": "Quick Panel (Alt+B)",
                                         "command": "rapscallion_quick_bookmarks"
                                     },
@@ -25,15 +47,23 @@
                                         "command": "rapscallion_toggle_panel"
                                     },
                                     {
-                                        "caption": "Add or Edit Bookmark (Ctrl+F2)",
-                                        "command": "rapscallion_set_bookmark"
+                                        "caption": "Toggle Side Panel (Legacy)",
+                                        "command": "rapscallion_toggle_side_panel"
                                     },
                                     {
                                         "caption": "-"
                                     },
                                     {
-                                        "caption": "Toggle Side Panel (Legacy)",
-                                        "command": "rapscallion_toggle_side_panel"
+                                        "caption": "Clear Bookmarks in This File",
+                                        "command": "rapscallion_clear_file_bookmarks"
+                                    },
+                                    {
+                                        "caption": "Clear All Bookmarks in Project…",
+                                        "command": "rapscallion_clear_all_bookmarks"
+                                    },
+                                    {
+                                        "caption": "Export Bookmarks to Markdown",
+                                        "command": "rapscallion_export_markdown"
                                     },
                                     {
                                         "caption": "-"

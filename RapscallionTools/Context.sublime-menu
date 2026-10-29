@@ -1,0 +1,14 @@
+[
+    { "caption": "-" },
+    {
+        "caption": "Rapscallion Tools: Decode Hex (In Place)",
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": false, "pattern": "brace" }
+    },
+    {
+        "caption": "Rapscallion Tools: Decode Hex (To New Tab)",
+        "command": "rapscallion_decode_hex",
+        "args": { "to_new_tab": true, "pattern": "brace" }
+    }
+]
+

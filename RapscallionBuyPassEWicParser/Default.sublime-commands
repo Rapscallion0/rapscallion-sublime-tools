@@ -1,0 +1,30 @@
+[
+    {
+        "caption": "Preferences: Rapscallion BuyPass E-WIC Parser Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionBuyPassEWicParser/RapscallionBuyPassEWicParser.sublime-settings",
+            "default": "{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "WIC: Analyze Transaction by Invoice / Sequence / Auth #",
+        "command": "ewic_analyze_transaction_by_id"
+    },
+    {
+        "caption": "WIC: Audit All Transactions in Log",
+        "command": "ewic_audit_log"
+    },
+    {
+        "caption": "WIC: Parse Selected TLV Balance String",
+        "command": "ewic_parse_selection"
+    },
+    {
+        "caption": "WIC: View Report in Browser",
+        "command": "ewic_view_report_in_browser"
+    },
+    {
+        "caption": "WIC: Clear Active APL Cache",
+        "command": "ewic_clear_apl_cache"
+    }
+]
