@@ -34,6 +34,10 @@ SAMPLE_SLS_RBS = r"C:\Users\KevinSommers\.gemini\antigravity\brain\0ab05394-4268
 SAMPLE_SLS_WINEPS = r"C:\Users\KevinSommers\.gemini\antigravity\brain\0ab05394-4268-435a-ad85-c2a9e2cf9ec0\.user_uploaded\media_1793227722748_dca3377c.sls"
 SAMPLE_APL = r"C:\Users\KevinSommers\.gemini\antigravity\brain\0ab05394-4268-435a-ad85-c2a9e2cf9ec0\.user_uploaded\media_1793220481914_8b3792d8.apl"
 
+SAMPLE_V4_BUYPASS = r"D:\eWIC\V4\BuyPassIP\2023-04-24_ApiBuypassIP_001901.sl4"
+SAMPLE_V4_WINEPS = r"D:\eWIC\V4\WinEPS\2024-08-05_ApiWinEps_001001.sl4"
+SAMPLE_V4_WORLDPAY = r"D:\eWIC\V4\WorldPayISO\2023-11-20_ApiPayWorldpayISO_001901.sl4"
+
 
 def test_tlv_parsing():
     print("[*] Testing TLV Parsing...")
@@ -288,6 +292,129 @@ def test_report_destination_resolution():
     print("    [+] Destination Resolution Logic PASSED")
 
 
+def test_buypass_v4_audit(apl_db=None):
+    print("[*] Testing BuyPassIP V4 (.sl4) Log Auditing...")
+    if not os.path.exists(SAMPLE_V4_BUYPASS):
+        print(f"    [-] Sample V4 BuyPass not found at {SAMPLE_V4_BUYPASS}, skipping test.")
+        return
+
+    with open(SAMPLE_V4_BUYPASS, "r", encoding="latin1") as f:
+        lines = f.readlines()
+
+    scanner = LogAuditScanner(lines, default_state="NZ")
+    assert scanner.bank_name == "Buypass / FIS", f"Expected Buypass / FIS, got {scanner.bank_name}"
+    assert scanner.log_version == "V4", f"Expected log version V4, got {scanner.log_version}"
+
+    cycles = scanner.scan()
+    print(f"    [+] Discovered {len(cycles)} E-WIC transactions in BuyPassIP log")
+    assert len(cycles) == 49, f"Expected 49 cycles, got {len(cycles)}"
+
+    # Test Invoice 185
+    c185 = next((c for c in cycles if c.invoice_id == "185"), None)
+    assert c185 is not None, "Invoice 185 not found in BuyPassIP scan"
+    c185.reconcile(apl_db)
+    assert c185.auth_id == "250155", f"Expected auth 250155, got {c185.auth_id}"
+    assert c185.wic_amount == 3.00, f"Expected paid 3.00, got {c185.wic_amount}"
+    assert len(c185.items) == 2, f"Expected 2 items, got {len(c185.items)}"
+    assert c185.items[0].log_line == 252, f"Expected log line 252, got {c185.items[0].log_line}"
+    assert len(c185.events) >= 8, f"Expected >= 8 events, got {len(c185.events)}"
+
+    report, _ = render_markdown_report([c185], log_path=SAMPLE_V4_BUYPASS, apl_name="Test APL")
+    assert "Invoice #185" in report
+    assert "250155" in report
+    assert "`252`" in report
+    print("    [+] BuyPassIP V4 Audit PASSED")
+
+
+def test_wineps_v4_audit(apl_db=None):
+    print("[*] Testing WinEPS V4 (.sl4) Log Auditing...")
+    if not os.path.exists(SAMPLE_V4_WINEPS):
+        print(f"    [-] Sample V4 WinEPS not found at {SAMPLE_V4_WINEPS}, skipping test.")
+        return
+
+    with open(SAMPLE_V4_WINEPS, "r", encoding="latin1") as f:
+        lines = f.readlines()
+
+    scanner = LogAuditScanner(lines, default_state="NZ")
+    assert scanner.bank_name == "WinEPS", f"Expected WinEPS, got {scanner.bank_name}"
+    assert scanner.log_version == "V4", f"Expected log version V4, got {scanner.log_version}"
+
+    cycles = scanner.scan()
+    print(f"    [+] Discovered {len(cycles)} E-WIC transactions in WinEPS V4 log")
+    assert len(cycles) == 18, f"Expected 18 cycles, got {len(cycles)}"
+
+    # Test Invoice 152
+    c152 = next((c for c in cycles if c.invoice_id == "152"), None)
+    assert c152 is not None, "Invoice 152 not found in WinEPS scan"
+    c152.reconcile(apl_db)
+    assert c152.auth_id == "324515", f"Expected auth 324515, got {c152.auth_id}"
+    assert c152.wic_amount == 3.34, f"Expected paid 3.34, got {c152.wic_amount}"
+    assert len(c152.items) == 1, f"Expected 1 item, got {len(c152.items)}"
+    assert c152.items[0].log_line == 2598, f"Expected log line 2598, got {c152.items[0].log_line}"
+    assert len(c152.events) >= 7, f"Expected >= 7 events, got {len(c152.events)}"
+
+    report, _ = render_markdown_report([c152], log_path=SAMPLE_V4_WINEPS, apl_name="Test APL")
+    assert "Invoice #152" in report
+    assert "324515" in report
+    assert "`2598`" in report
+    print("    [+] WinEPS V4 Audit PASSED")
+
+
+def test_worldpay_v4_audit(apl_db=None):
+    print("[*] Testing WorldPay ISO V4 (.sl4) Log Auditing...")
+    if not os.path.exists(SAMPLE_V4_WORLDPAY):
+        print(f"    [-] Sample V4 WorldPay not found at {SAMPLE_V4_WORLDPAY}, skipping test.")
+        return
+
+    with open(SAMPLE_V4_WORLDPAY, "r", encoding="latin1") as f:
+        lines = f.readlines()
+
+    scanner = LogAuditScanner(lines, default_state="NZ")
+    assert scanner.bank_name == "Worldpay ISO", f"Expected Worldpay ISO, got {scanner.bank_name}"
+    assert scanner.log_version == "V4", f"Expected log version V4, got {scanner.log_version}"
+
+    cycles = scanner.scan()
+    print(f"    [+] Discovered {len(cycles)} E-WIC transactions in WorldPay ISO log")
+    assert len(cycles) == 29, f"Expected 29 cycles, got {len(cycles)}"
+
+    # Test Invoice 57
+    c57 = next((c for c in cycles if c.invoice_id == "57"), None)
+    assert c57 is not None, "Invoice 57 not found in WorldPay scan"
+    c57.reconcile(apl_db)
+    assert c57.auth_id == "343524", f"Expected auth 343524, got {c57.auth_id}"
+    assert c57.wic_amount == 8.00, f"Expected paid 8.00, got {c57.wic_amount}"
+    assert len(c57.items) == 1, f"Expected 1 item, got {len(c57.items)}"
+    assert c57.items[0].log_line == 316, f"Expected log line 316, got {c57.items[0].log_line}"
+    assert len(c57.events) >= 6, f"Expected >= 6 events, got {len(c57.events)}"
+
+    report, _ = render_markdown_report([c57], log_path=SAMPLE_V4_WORLDPAY, apl_name="Test APL")
+    assert "Invoice #57" in report
+    assert "343524" in report
+    assert "`316`" in report
+    print("    [+] WorldPay ISO V4 Audit PASSED")
+
+
+def test_v4_targeted_audit():
+    print("[*] Testing Single-Transaction Targeted Audit on V4 Logs...")
+    if os.path.exists(SAMPLE_V4_BUYPASS):
+        with open(SAMPLE_V4_BUYPASS, "r", encoding="latin1") as f:
+            lines = f.readlines()
+        scanner = LogAuditScanner(lines, default_state="NZ")
+        c_inv = scanner.scan(target_invoice="185")
+        assert len(c_inv) == 1, f"Expected 1 cycle for targeted invoice 185, got {len(c_inv)}"
+        c_auth = scanner.scan(target_invoice="250155")
+        assert len(c_auth) == 1, f"Expected 1 cycle for targeted auth 250155, got {len(c_auth)}"
+
+    if os.path.exists(SAMPLE_V4_WINEPS):
+        with open(SAMPLE_V4_WINEPS, "r", encoding="latin1") as f:
+            lines = f.readlines()
+        scanner = LogAuditScanner(lines, default_state="NZ")
+        c_auth = scanner.scan(target_invoice="324515")
+        assert len(c_auth) == 1, f"Expected 1 cycle for targeted auth 324515, got {len(c_auth)}"
+
+    print("    [+] V4 Targeted Audit PASSED")
+
+
 if __name__ == "__main__":
     print("==================================================")
     print("Starting RapscallionEWicParser Test Suite")
@@ -299,6 +426,10 @@ if __name__ == "__main__":
     test_wineps_audit(apl_db)
     test_targeted_audit()
     test_report_destination_resolution()
+    test_buypass_v4_audit(apl_db)
+    test_wineps_v4_audit(apl_db)
+    test_worldpay_v4_audit(apl_db)
+    test_v4_targeted_audit()
     print("==================================================")
     print("ALL TESTS PASSED SUCCESSFULLY!")
     print("==================================================")

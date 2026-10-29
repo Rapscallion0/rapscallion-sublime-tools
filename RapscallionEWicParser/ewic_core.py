@@ -194,9 +194,16 @@ def parse_tlv_string(
     exp_date: Optional[str] = None
     detected_state = default_state
 
-    # Clean enclosing attributes if passed like dat="..."
-    m_dat = re.search(r'dat="([^"]+)"', raw_text)
-    content = m_dat.group(1) if m_dat else raw_text
+    # Clean enclosing attributes if passed like dat="..." (V3) or |dat:... (V4)
+    if "|dat:" in raw_text:
+        content = raw_text.split("|dat:", 1)[1].strip()
+    elif 'dat="' in raw_text:
+        m_dat = re.search(r'dat="([^"]+)"', raw_text)
+        content = m_dat.group(1) if m_dat else raw_text
+    elif "dat:" in raw_text:
+        content = raw_text.split("dat:", 1)[1].strip()
+    else:
+        content = raw_text
 
     # Strip prefixes like [SMSPayStatus] or other brackets if present
     content = re.sub(r'^\[[^\]]+\]\s*', '', content)
@@ -286,16 +293,21 @@ def detect_bank_name(lines: Sequence[str]) -> str:
     """Detect the bank processor / driver name from log header and tokens."""
     for line in lines[:150]:
         m = re.search(r'cap="In(?:i|it)"\s+dat="([^"]+)"', line)
+        if not m:
+            m = re.search(r'cap:Ini(?: for Setup)?\|dat:([^\r\n|]+)', line)
         if m:
             ini = m.group(1).lower()
             if "buypass" in ini:
                 return "Buypass / FIS"
+            elif "worldpay" in ini or "vantiv" in ini:
+                return "Worldpay ISO"
             elif "rbs" in ini or "lynk" in ini:
                 return "RBSLynk ISO"
             elif "wineps" in ini or "openeps" in ini:
                 return "WinEPS"
             return m.group(1)
 
+        # V3 XML tags
         if "<ApiBuypass" in line:
             return "Buypass / FIS"
         if "<ApiRBS" in line or "<ApiLynk" in line:
@@ -303,10 +315,22 @@ def detect_bank_name(lines: Sequence[str]) -> str:
         if "<ApiWinEps" in line or "<ApiOpenEps" in line:
             return "WinEPS"
 
+        # V4 Source components
+        if "sc:ApiBuypass" in line:
+            return "Buypass / FIS"
+        if "sc:ApiPayWorldpay" in line or "sc:ApiWorldpay" in line:
+            return "Worldpay ISO"
+        if "sc:ApiWinEps" in line:
+            return "WinEPS"
+        if "sc:ApiRBS" in line or "sc:ApiLynk" in line:
+            return "RBSLynk ISO"
+
     for line in lines:
+        if "/PAYHOSTNAME=WP" in line or "worldpay" in line.lower() or "vantiv" in line.lower():
+            return "Worldpay ISO"
         if "/PAYHOSTNAME=BY" in line or "ApiBuypass" in line:
             return "Buypass / FIS"
-        if "/PAYHOSTNAME=RB" in line or "ApiRBS" in line or "lynksystems" in line:
+        if "/PAYHOSTNAME=RB" in line or "ApiRBS" in line or "lynksystems" in line.lower():
             return "RBSLynk ISO"
         if "/PAYHOSTNAME=WE" in line or "/PAYMENT=WINEPS" in line or "ApiWinEps" in line or "openeps" in line.lower():
             return "WinEPS"
@@ -315,12 +339,19 @@ def detect_bank_name(lines: Sequence[str]) -> str:
 
 
 def is_ewic_balance_line(line: str) -> bool:
-    """Check if line contains an E-WIC balance tag across all bank variants."""
-    if 'cap="E-WIC' in line and '(BALANCE)"' in line:
+    """Check if line contains an E-WIC balance tag across all bank variants and versions."""
+    if ('cap="E-WIC' in line or 'cap:E-WIC' in line) and "BALANCE" in line:
         return True
-    if 'cap="SendRequest response"' in line and "EA014" in line:
+    if ('cap="SendRequest response"' in line or 'SendRequest response' in line) and "EA014" in line:
         return True
-    if 'dat="EA014' in line or 'dat="[SMSPayStatus] EA014' in line or "EA014142" in line:
+    if (
+        'dat="EA014' in line
+        or 'dat:EA014' in line
+        or 'dat="[SMSPayStatus] EA014' in line
+        or "EA014142" in line
+        or 'dat:PS047' in line
+        or 'dat="PS047' in line
+    ):
         return True
     return False
 
@@ -335,8 +366,11 @@ def detect_log_version(lines: Sequence[str], file_path: Optional[str] = None) ->
             return "V3"
 
     for line in lines[:30]:
-        if line.strip().startswith("<Api"):
+        s = line.strip()
+        if s.startswith("<Api"):
             return "V3"
+        if re.match(r"^\d{2}:\d{2}:\d{2}\.\d{3}\|sc:", s) or "|sc:Api" in s or "|lv:" in s:
+            return "V4"
 
     return "V3"
 
@@ -425,23 +459,30 @@ class LogAuditScanner:
 
                 if inv_match:
                     inv_id = str(int(inv_match.group(1)))  # Normalize away leading zeros
-                    if clean_target is None:
-                        settlement_indices.append((idx, inv_id))
-                    else:
-                        norm_target = str(int(clean_target)) if clean_target.isdigit() else clean_target
-                        norm_inv = str(int(inv_id)) if inv_id.isdigit() else inv_id
-                        m_auth_chk = re.search(r'/AUTHID=([^\s/]+)', line)
-                        m_seq_chk = re.search(r'/PAYSEQUENCE=([^\s/]+)', line)
-                        norm_auth = str(int(m_auth_chk.group(1))) if (m_auth_chk and m_auth_chk.group(1).isdigit()) else (m_auth_chk.group(1) if m_auth_chk else "")
-                        norm_seq = str(int(m_seq_chk.group(1))) if (m_seq_chk and m_seq_chk.group(1).isdigit()) else (m_seq_chk.group(1) if m_seq_chk else "")
 
-                        if norm_inv == norm_target or norm_auth == norm_target or norm_seq == norm_target:
-                            settlement_indices.append((idx, inv_id))
+                    # Deduplicate consecutive response entries for the same invoice within 2 lines (e.g. V4 dual logging)
+                    if settlement_indices and settlement_indices[-1][1] == inv_id and (idx - settlement_indices[-1][0]) <= 2:
+                        settlement_indices[-1] = (idx, inv_id)
+                        continue
+
+                    settlement_indices.append((idx, inv_id))
 
         # 2. For each settlement, correlate backward
         for set_idx, inv_id in settlement_indices:
             cycle = self._correlate_cycle(set_idx, inv_id)
             if cycle:
+                if clean_target is not None:
+                    norm_target = str(int(clean_target)) if clean_target.isdigit() else clean_target
+                    matches = False
+                    for cid in (cycle.invoice_id, cycle.sequence_no, cycle.auth_id, cycle.preauth_id):
+                        if cid:
+                            norm_cid = str(int(cid)) if cid.isdigit() else cid
+                            if norm_cid == norm_target:
+                                matches = True
+                                break
+                    if not matches:
+                        continue
+
                 cycles.append(cycle)
                 if cycle.inquiry_line > 0:
                     processed_inquiry_lines.add(cycle.inquiry_line - 1)
@@ -551,13 +592,18 @@ class LogAuditScanner:
             return None
 
         # Build chronological event trace
+        is_v4 = (self.log_version == "V4")
+        t_req = "cap:PAY Request" if is_v4 else 'cap="PAY Request"'
+        t_resp = "cap:PAY Response" if is_v4 else 'cap="PAY Response"'
+        t_bal = "cap:E-WIC (BALANCE)" if is_v4 else 'cap="E-WIC (BALANCE)"'
+
         req_line = self.lines[req_idx]
         cycle.events.append(LogEventRecord(
             line_no=req_idx + 1,
             timestamp=extract_timestamp(req_line),
             event_type="Inquiry Request",
             summary=f"PAY Request (/PRN=eWIC_Inquiry, Term {cycle.terminal_id or 'N/A'}, Store {cycle.store_id or 'N/A'})",
-            raw_tag='cap="PAY Request"'
+            raw_tag=t_req
         ))
 
         if bal_line_idx is not None:
@@ -567,7 +613,7 @@ class LogAuditScanner:
                 timestamp=extract_timestamp(bal_line),
                 event_type="Initial Balances",
                 summary=f"E-WIC Balance Record ({len(cycle.inquiry_balances)} categories loaded, Exp: {cycle.exp_date or 'N/A'})",
-                raw_tag='cap="E-WIC (BALANCE)"'
+                raw_tag=t_bal
             ))
 
         cycle.events.append(LogEventRecord(
@@ -575,7 +621,7 @@ class LogAuditScanner:
             timestamp=extract_timestamp(resp_line),
             event_type="Inquiry Response",
             summary=f"PAY Response ({cycle.auth_display or 'Approved'}, Auth: {cycle.auth_id or 'N/A'}, Seq: {cycle.sequence_no or 'N/A'})",
-            raw_tag='cap="PAY Response"'
+            raw_tag=t_resp
         ))
 
         cycle.events.sort(key=lambda ev: ev.line_no)
@@ -607,13 +653,20 @@ class LogAuditScanner:
         if m_oper:
             cycle.operator_id = m_oper.group(1)
 
-        m_auth = re.search(r'/AUTHID=([^\s/]+)', set_resp_line)
+        m_auth = re.search(r'/(?:AUTHID|AUTH)=([^\s/]+)', set_resp_line)
         if m_auth:
-            cycle.auth_id = m_auth.group(1)
+            cycle.auth_id = m_auth.group(1).strip("'\" ")
+        else:
+            # Check nearby lines for AuthorizationNumber=... (e.g. WinEPS V4)
+            for near_i in range(max(0, set_resp_idx - 30), min(len(self.lines), set_resp_idx + 10)):
+                m_auth_near = re.search(r'AuthorizationNumber=([^\s|]+)', self.lines[near_i])
+                if m_auth_near:
+                    cycle.auth_id = m_auth_near.group(1).strip("'\" ")
+                    break
 
-        m_disp = re.search(r"/PAYDISPLAY='([^']+)'", set_resp_line)
+        m_disp = re.search(r"/PAYDISPLAY=(?:'([^']*)'|([^\s/]+))", set_resp_line)
         if m_disp:
-            cycle.auth_display = m_disp.group(1)
+            cycle.auth_display = (m_disp.group(1) or m_disp.group(2) or "").strip()
 
         # Pre-auth parsing (handles both Buypass and RBSLynk ISO formats)
         m_preauth = re.search(r'/PAYPREAUTHID=(?:\'([^\']*)\'|"([^"]*)"|([^\s/]+))', set_resp_line)
@@ -739,9 +792,9 @@ class LogAuditScanner:
 
         for item_i in range(items_start, min(len(self.lines), set_resp_idx + 15)):
             line = self.lines[item_i]
-            if 'cap="Xml line item"' in line:
+            if 'Xml line item' in line:
                 m_line = re.search(r'Line=(\d+)', line)
-                m_upc = re.search(r'UPC=([^\s"]+)', line)
+                m_upc = re.search(r'UPC=([^\s"|]+)', line)
                 m_qty = re.search(r'qty=([\d.]+)', line)
                 m_price = re.search(r'price=([\d.]+)', line)
 
@@ -766,6 +819,12 @@ class LogAuditScanner:
         cycle.items = [discovered_items[k] for k in sorted(discovered_items.keys())]
 
         # 5. Build chronological event trace
+        is_v4 = (self.log_version == "V4")
+        t_req = "cap:PAY Request" if is_v4 else 'cap="PAY Request"'
+        t_resp = "cap:PAY Response" if is_v4 else 'cap="PAY Response"'
+        t_bal = "cap:E-WIC (BALANCE)" if is_v4 else 'cap="E-WIC (BALANCE)"'
+        t_item = "cap:Xml line item" if is_v4 else 'cap="Xml line item"'
+
         if inquiry_idx is not None:
             inq_line = self.lines[inquiry_idx]
             cycle.events.append(LogEventRecord(
@@ -773,7 +832,7 @@ class LogAuditScanner:
                 timestamp=extract_timestamp(inq_line),
                 event_type="Inquiry Request",
                 summary=f"PAY Request (/PAYTRANCODE=1, Term {cycle.terminal_id or 'N/A'}, Store {cycle.store_id or 'N/A'})",
-                raw_tag='cap="PAY Request"'
+                raw_tag=t_req
             ))
 
         if inq_bal_idx is not None:
@@ -783,7 +842,7 @@ class LogAuditScanner:
                 timestamp=extract_timestamp(inq_b_line),
                 event_type="Initial Balances",
                 summary=f"E-WIC Balance Record ({len(cycle.inquiry_balances)} categories loaded, Exp: {cycle.exp_date or 'N/A'})",
-                raw_tag='cap="E-WIC (BALANCE)"'
+                raw_tag=t_bal
             ))
 
         if inq_resp_idx is not None:
@@ -793,7 +852,7 @@ class LogAuditScanner:
                 timestamp=extract_timestamp(inq_r_line),
                 event_type="Inquiry Response",
                 summary=f"PAY Response (APPROVED, Pre-Auth: {cycle.preauth_id or 'N/A'}, Seq: {cycle.inquiry_sequence_no or 'N/A'})",
-                raw_tag='cap="PAY Response"'
+                raw_tag=t_resp
             ))
 
         for item in cycle.items:
@@ -804,7 +863,7 @@ class LogAuditScanner:
                 timestamp=extract_timestamp(item_line_str),
                 event_type=f"Basket Item #{item.line_no}",
                 summary=f"Xml line item (UPC {item.upc}, Shelf ${item.price:,.2f})",
-                raw_tag='cap="Xml line item"'
+                raw_tag=t_item
             ))
 
         if set_req_idx != set_resp_idx:
@@ -814,7 +873,7 @@ class LogAuditScanner:
                 timestamp=extract_timestamp(set_r_line),
                 event_type="Settlement Request",
                 summary=f"PAY Request (/PAYTRANCODE=2, Inv #{cycle.invoice_id}, Amnt: ${cycle.wic_amount:,.2f})",
-                raw_tag='cap="PAY Request"'
+                raw_tag=t_req
             ))
 
         if settled_bal_idx is not None:
@@ -824,7 +883,7 @@ class LogAuditScanner:
                 timestamp=extract_timestamp(set_b_line),
                 event_type="Settled Balances",
                 summary=f"E-WIC Balance Record ({len(cycle.settled_balances)} categories updated)",
-                raw_tag='cap="E-WIC (BALANCE)"'
+                raw_tag=t_bal
             ))
 
         cycle.events.append(LogEventRecord(
@@ -832,7 +891,7 @@ class LogAuditScanner:
             timestamp=extract_timestamp(set_resp_line),
             event_type="Settlement Response",
             summary=f"PAY Response ({cycle.auth_display or 'APPROVED'}, Auth: {cycle.auth_id or 'N/A'}, Seq: {cycle.sequence_no or 'N/A'}, Paid: ${cycle.wic_amount:,.2f})",
-            raw_tag='cap="PAY Response"'
+            raw_tag=t_resp
         ))
 
         cycle.events.sort(key=lambda ev: ev.line_no)
