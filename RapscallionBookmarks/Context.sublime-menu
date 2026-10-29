@@ -1,8 +1,8 @@
 [
-    { "caption": "-" },
     {
         "caption": "Rapscallion Tools",
         "id": "rapscallion_tools_root",
+        "before": "diff",
         "children": [
             {
                 "caption": "Bookmarks",
@@ -55,5 +55,6 @@
                 ]
             }
         ]
-    }
+    },
+    { "caption": "-" }
 ]

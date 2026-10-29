@@ -17,37 +17,37 @@
                                 "caption": "Bookmarks",
                                 "children": [
                                     {
-                                        "caption": "Toggle Bookmark (Ctrl+F2)",
+                                        "caption": "Toggle Bookmark",
                                         "command": "rapscallion_toggle_bookmark"
                                     },
                                     {
-                                        "caption": "Add Named Bookmark… (Ctrl+Shift+F2)",
+                                        "caption": "Add Named Bookmark…",
                                         "command": "rapscallion_set_named_bookmark"
                                     },
                                     {
                                         "caption": "-"
                                     },
                                     {
-                                        "caption": "Next Bookmark (F2)",
+                                        "caption": "Next Bookmark",
                                         "command": "rapscallion_next_bookmark"
                                     },
                                     {
-                                        "caption": "Previous Bookmark (Shift+F2)",
+                                        "caption": "Previous Bookmark",
                                         "command": "rapscallion_prev_bookmark"
                                     },
                                     {
                                         "caption": "-"
                                     },
                                     {
-                                        "caption": "Quick Panel (Alt+B)",
+                                        "caption": "Quick Panel",
                                         "command": "rapscallion_quick_bookmarks"
                                     },
                                     {
-                                        "caption": "Toggle Bottom Panel (Alt+Shift+B)",
+                                        "caption": "Toggle Bottom Panel",
                                         "command": "rapscallion_toggle_panel"
                                     },
                                     {
-                                        "caption": "Toggle Side Panel (Legacy)",
+                                        "caption": "Toggle Side Panel",
                                         "command": "rapscallion_toggle_side_panel"
                                     },
                                     {

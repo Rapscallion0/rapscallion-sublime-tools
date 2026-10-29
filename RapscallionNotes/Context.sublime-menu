@@ -1,15 +1,15 @@
 [
-    { "caption": "-" },
     {
         "caption": "Rapscallion Tools",
         "id": "rapscallion_tools_root",
+        "before": "diff",
         "children": [
             {
                 "caption": "Notes & Scratchpad",
                 "id": "rapscallion_notes_submenu",
                 "children": [
                     {
-                        "caption": "Create or Open Ticket Note (Alt+N)",
+                        "caption": "Create or Open Ticket Note",
                         "command": "create_ticket_note"
                     },
                     {
@@ -19,5 +19,6 @@
                 ]
             }
         ]
-    }
+    },
+    { "caption": "-" }
 ]

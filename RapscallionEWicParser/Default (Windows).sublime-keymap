@@ -9,7 +9,7 @@
     // Rapscallion E-WIC Parser: Key Chords (Prefix: Ctrl+Alt+W)
     // =========================================================================
 
-    // Parse Selected TLV Balance String: Ctrl+Alt+W, S
+    // Parse Selected Card Balances: Ctrl+Alt+W, S
     {
         "keys": ["ctrl+alt+w", "s"],
         "command": "ewic_parse_selection"

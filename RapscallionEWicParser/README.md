@@ -45,7 +45,7 @@ All commands feature intuitive key chords prefixed by **`Ctrl+Alt+W`** (macOS: *
 
 | Key Chord | Alternate / Direct | Command Caption | Purpose |
 | :--- | :--- | :--- | :--- |
-| `Ctrl+Alt+W, S` | `Ctrl+Alt+W` | **WIC: Parse Selected TLV Balance String** | Parse cursor line or highlighted `dat="EA..."` string |
+| `Ctrl+Alt+W, S` | `Ctrl+Alt+W` | **WIC: Parse Selected Card Balances** | Parse cursor line or highlighted balance data string |
 | `Ctrl+Alt+W, I` | *(Palette / Menu)* | **WIC: Analyze Transaction by Invoice / Sequence / Auth #** | Targeted audit by Invoice, STAN/Sequence, or Auth ID |
 | `Ctrl+Alt+W, A` | *(Palette / Menu)* | **WIC: Audit All Transactions in Log** | Audit all E-WIC transactions in active log buffer |
 | `Ctrl+Alt+W, B` | *(Palette / Menu)* | **WIC: View Report in Browser** | Open report in system web browser with responsive tables |

@@ -1,8 +1,8 @@
 [
-    { "caption": "-" },
     {
         "caption": "Rapscallion Tools",
         "id": "rapscallion_tools_root",
+        "before": "diff",
         "children": [
             {
                 "caption": "E-WIC Log Parser",
@@ -17,7 +17,7 @@
                         "command": "ewic_audit_log"
                     },
                     {
-                        "caption": "Parse Selected TLV Balance (Ctrl+Alt+W)",
+                        "caption": "Parse Selected Card Balances",
                         "command": "ewic_parse_selection"
                     },
                     {
@@ -41,5 +41,6 @@
                 ]
             }
         ]
-    }
+    },
+    { "caption": "-" }
 ]

@@ -24,7 +24,7 @@
         "command": "ewic_audit_log"
     },
     {
-        "caption": "WIC: Parse Selected TLV Balance String",
+        "caption": "WIC: Parse Selected Card Balances",
         "command": "ewic_parse_selection"
     },
     {
