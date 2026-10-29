@@ -21,9 +21,9 @@
         "command": "ewic_analyze_transaction_by_id"
     },
 
-    // Full Audit of Active Log File: Super+Alt+W, F
+    // Audit All Transactions in Active Log File: Super+Alt+W, A
     {
-        "keys": ["super+alt+w", "f"],
+        "keys": ["super+alt+w", "a"],
         "command": "ewic_audit_log"
     },
 

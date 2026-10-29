@@ -47,7 +47,7 @@ All commands feature intuitive key chords prefixed by **`Ctrl+Alt+W`** (macOS: *
 | :--- | :--- | :--- | :--- |
 | `Ctrl+Alt+W, S` | `Ctrl+Alt+W` | **WIC: Parse Selected TLV Balance String** | Parse cursor line or highlighted `dat="EA..."` string |
 | `Ctrl+Alt+W, I` | *(Palette / Menu)* | **WIC: Analyze Transaction by Invoice / Sequence / Auth #** | Targeted audit by Invoice, STAN/Sequence, or Auth ID |
-| `Ctrl+Alt+W, F` | *(Palette / Menu)* | **WIC: Audit All Transactions in Log** | Audit all E-WIC transactions in active log buffer |
+| `Ctrl+Alt+W, A` | *(Palette / Menu)* | **WIC: Audit All Transactions in Log** | Audit all E-WIC transactions in active log buffer |
 | `Ctrl+Alt+W, B` | *(Palette / Menu)* | **WIC: View Report in Browser** | Open report in system web browser with responsive tables |
 | `Ctrl+Alt+W, D` | *(Palette / Menu)* | **WIC: Set Report Output Destination…** | Quick switcher (Markdown / Browser / Both) |
 | `Ctrl+Alt+W, L` | *(Palette / Menu)* | **WIC: Load APL Catalog File…** | Explicitly browse and cache an APL catalog file |
