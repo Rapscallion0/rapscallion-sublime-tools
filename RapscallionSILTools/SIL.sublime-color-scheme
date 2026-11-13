@@ -1,4 +1,10 @@
 {
+    "globals":
+    {
+        "background": "#1E222A",
+        "foreground": "#E2E8F0",
+        "caret": "#FFFFFF"
+    },
     "rules":
     [
         {

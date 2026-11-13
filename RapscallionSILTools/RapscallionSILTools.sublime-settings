@@ -68,7 +68,11 @@
     //   "markdown" - Outputs to aligned GitHub-Flavored Markdown table Results.md
     "default_result_format": "csv",
 
+    // Default single-line query template for Alt+Q (supports {table} and {columns})
     "default_query_template": "SELECT * FROM {table}",
+
+    // Default multi-line query template for the SQL Scratchpad (supports {table} and {columns})
+    "scratchpad_default_query_template": "SELECT *\nFROM {table}\nLIMIT 100;",
     "export_delimiter": ",",
     "preferred_csv_syntax": "",
 
@@ -76,5 +80,17 @@
     // Column Formatter & Alignment
     // =========================================================================
     // Maximum character width for any single column when aligning (0 = unlimited)
-    "align_max_col_width": 120
+    "align_max_col_width": 120,
+
+    // =========================================================================
+    // SQL Scratchpad
+    // =========================================================================
+    // Where to open the multi-line SQL Query Scratchpad:
+    //   "panel" - Bottom dock output panel (keeps source file visible above)
+    //   "split" - Bottom split pane (auto-collapses when closed)
+    //   "tab"   - New editor tab
+    "scratchpad_mode": "panel",
+
+    // Height ratio for "split" mode bottom pane (0.15 to 0.70)
+    "scratchpad_split_ratio": 0.35
 }

@@ -2,6 +2,11 @@ import sublime
 import sublime_plugin
 import zipfile
 import os
+import sys
+import hashlib
+import shutil
+import subprocess
+import threading
 import datetime
 import tempfile
 import fnmatch
@@ -9,6 +14,19 @@ import fnmatch
 SETTINGS_FILE = "RapscallionZip.sublime-settings"
 
 ACTIVE_ZIP_VIEWS = {}
+
+
+def get_cache_root():
+    return os.path.abspath(os.path.join(tempfile.gettempdir(), "RapscallionTools_ZipCache"))
+
+
+def open_with_default_app(path):
+    if sys.platform.startswith("win"):
+        os.startfile(path)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
 
 def get_setting(key, default=None):
     return sublime.load_settings(SETTINGS_FILE).get(key, default)
@@ -76,6 +94,142 @@ def update_row_highlight(view, row):
         sublime.DRAW_SOLID_UNDERLINE | sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE
     )
 
+def _build_zip_tree_data(path, expanded, filter_query, ignored_patterns):
+    stat_info = os.stat(path)
+    archive_size_str = format_size(stat_info.st_size)
+    mod_time_str = datetime.datetime.fromtimestamp(stat_info.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+
+    with zipfile.ZipFile(path, 'r') as zf:
+        root = TreeNode(os.path.basename(path), is_dir=True)
+        items = zf.infolist()
+
+        total_files = 0
+        all_dirs = set()
+        total_uncomp = 0
+
+        for info in items:
+            if is_ignored(info.filename, ignored_patterns):
+                continue
+
+            clean_path = info.filename.rstrip('/')
+            parts = clean_path.split('/')
+            root.add_child(parts, info, full_path=info.filename)
+
+            if info.filename.endswith('/'):
+                all_dirs.add(clean_path)
+            else:
+                total_files += 1
+                total_uncomp += info.file_size
+                for i in range(1, len(parts)):
+                    all_dirs.add('/'.join(parts[:i]))
+
+        total_folders = len(all_dirs)
+        uncomp_size_str = format_size(total_uncomp)
+        parent_dir = os.path.dirname(path).rstrip('\\/') + os.sep
+
+        NAME_WIDTH = 56
+        SIZE_WIDTH = 12
+        COMP_WIDTH = 12
+        DATE_WIDTH = 16
+
+        header_line = "{0:<{1}} {2:>{3}}   {4:>{5}}   {6:<{7}}".format(
+            'Name', NAME_WIDTH, 'Size', SIZE_WIDTH, 'Compressed', COMP_WIDTH, 'Date', DATE_WIDTH
+        )
+        divider = "-" * len(header_line)
+        double_divider = "=" * len(header_line)
+
+        lines = [
+            "ARCHIVE:       {0}".format(os.path.basename(path)),
+            "PATH:          {0}".format(parent_dir),
+            "ARCHIVE SIZE:  {0} ({1:,} bytes) [Uncompressed: {2} ({3:,} bytes)]".format(
+                archive_size_str, stat_info.st_size, uncomp_size_str, total_uncomp
+            ),
+            "DATE MODIFIED: {0}".format(mod_time_str),
+            "CONTENTS:      {0} files, {1} folders{2}".format(
+                total_files, total_folders, (" (Filtered: '{0}')".format(filter_query) if filter_query else "")
+            ),
+            double_divider,
+            "ℹ Click ▸ / ▾ to toggle folder, double-click item or press Enter to open",
+            header_line,
+            divider,
+        ]
+
+        header_map = {"0": "archive", "1": "path"}
+        line_map = {}
+        dir_line_map = {}
+
+        def render_node(node, depth=0, current_path=""):
+            sorted_children = sorted(
+                node.children.values(),
+                key=lambda x: (not x.is_dir, x.name.lower())
+            )
+
+            indent = "    " * depth
+
+            for child in sorted_children:
+                if filter_query and not child.matches_filter(filter_query):
+                    continue
+
+                child_path = "{0}{1}/".format(current_path, child.name) if child.is_dir else child.full_path
+
+                if child.is_dir:
+                    is_open = child_path in expanded or bool(filter_query)
+                    icon = "▾" if is_open else "▸"
+                    display_str = "{0}{1} 📁 {2}/".format(indent, icon, child.name)
+
+                    line_idx = len(lines)
+                    dir_line_map[str(line_idx)] = child_path
+                    lines.append(display_str)
+
+                    if is_open:
+                        render_node(child, depth + 1, child_path)
+                else:
+                    info = child.info
+                    sz_str = format_size(info.file_size)
+                    comp_str = format_size(info.compress_size)
+                    dt_str = "%d-%02d-%02d %02d:%02d" % info.date_time[:5]
+
+                    raw_name_col = "{0}  📄 {1}".format(indent, child.name)
+                    visual_name_len = len(raw_name_col) + 1
+                    padding = max(1, NAME_WIDTH - visual_name_len)
+                    padded_name = raw_name_col + (" " * padding)
+
+                    line_idx = len(lines)
+                    line_map[str(line_idx)] = child.full_path
+                    lines.append("{0} {1:>{2}}   {3:>{4}}   {5:<{6}}".format(
+                        padded_name, sz_str, SIZE_WIDTH, comp_str, COMP_WIDTH, dt_str, DATE_WIDTH
+                    ))
+
+        render_node(root)
+        lines.append(double_divider)
+
+    return "\n".join(lines), header_map, line_map, dir_line_map
+
+
+class RapscallionApplyZipTreeCommand(sublime_plugin.TextCommand):
+    def run(self, edit, content="", header_map=None, line_map=None, dir_line_map=None):
+        view = self.view
+        if not view.is_valid():
+            return
+
+        viewport = view.viewport_position()
+
+        view.set_read_only(False)
+        view.replace(edit, sublime.Region(0, view.size()), content)
+        view.set_read_only(True)
+        view.set_scratch(True)
+
+        view.settings().set("zip_header_map", header_map or {})
+        view.settings().set("zip_line_map", line_map or {})
+        view.settings().set("zip_dir_line_map", dir_line_map or {})
+
+        active_row = view.settings().get("zip_active_row")
+        if active_row is not None:
+            update_row_highlight(view, active_row)
+
+        view.set_viewport_position(viewport, False)
+
+
 class RapscallionRenderZipTreeCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         view = self.view
@@ -87,134 +241,33 @@ class RapscallionRenderZipTreeCommand(sublime_plugin.TextCommand):
         filter_query = view.settings().get("zip_filter_query", "").strip()
         ignored_patterns = get_setting("archive_ignored_patterns", [])
 
-        try:
-            stat_info = os.stat(path)
-            archive_size_str = format_size(stat_info.st_size)
-            mod_time_str = datetime.datetime.fromtimestamp(stat_info.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-
-            with zipfile.ZipFile(path, 'r') as zf:
-                root = TreeNode(os.path.basename(path), is_dir=True)
-                items = zf.infolist()
-
-                total_files = 0
-                all_dirs = set()
-                total_uncomp = 0
-
-                for info in items:
-                    if is_ignored(info.filename, ignored_patterns):
-                        continue
-
-                    clean_path = info.filename.rstrip('/')
-                    parts = clean_path.split('/')
-                    root.add_child(parts, info, full_path=info.filename)
-
-                    if info.filename.endswith('/'):
-                        all_dirs.add(clean_path)
-                    else:
-                        total_files += 1
-                        total_uncomp += info.file_size
-                        for i in range(1, len(parts)):
-                            all_dirs.add('/'.join(parts[:i]))
-
-                total_folders = len(all_dirs)
-                uncomp_size_str = format_size(total_uncomp)
-                parent_dir = os.path.dirname(path).rstrip('\\/') + '\\'
-
-                NAME_WIDTH = 56
-                SIZE_WIDTH = 12
-                COMP_WIDTH = 12
-                DATE_WIDTH = 16
-
-                header_line = "{0:<{1}} {2:>{3}}   {4:>{5}}   {6:<{7}}".format(
-                    'Name', NAME_WIDTH, 'Size', SIZE_WIDTH, 'Compressed', COMP_WIDTH, 'Date', DATE_WIDTH
+        def _worker():
+            try:
+                content, header_map, line_map, dir_line_map = _build_zip_tree_data(
+                    path, expanded, filter_query, ignored_patterns
                 )
-                divider = "-" * len(header_line)
-                double_divider = "=" * len(header_line)
 
-                lines = [
-                    "ARCHIVE:       {0}".format(os.path.basename(path)),
-                    "PATH:          {0}".format(parent_dir),
-                    "ARCHIVE SIZE:  {0} ({1:,} bytes) [Uncompressed: {2} ({3:,} bytes)]".format(
-                        archive_size_str, stat_info.st_size, uncomp_size_str, total_uncomp
-                    ),
-                    "DATE MODIFIED: {0}".format(mod_time_str),
-                    "CONTENTS:      {0} files, {1} folders{2}".format(
-                        total_files, total_folders, (" (Filtered: '{0}')".format(filter_query) if filter_query else "")
-                    ),
-                    double_divider,
-                    "ℹ Click ▸ / ▾ to toggle folder, double-click item or press Enter to open",
-                    header_line,
-                    divider,
-                ]
+                def _apply():
+                    if view.is_valid():
+                        view.run_command(
+                            "rapscallion_apply_zip_tree",
+                            {
+                                "content": content,
+                                "header_map": header_map,
+                                "line_map": line_map,
+                                "dir_line_map": dir_line_map,
+                            },
+                        )
 
-                header_map = {"0": "archive", "1": "path"}
-                line_map = {}
-                dir_line_map = {}
+                sublime.set_timeout(_apply, 0)
+            except Exception as e:
+                err_msg = str(e)
+                sublime.set_timeout(
+                    lambda: sublime.error_message("[Rapscallion Tools: Zip] Render failed:\n{0}".format(err_msg)),
+                    0,
+                )
 
-                def render_node(node, depth=0, current_path=""):
-                    sorted_children = sorted(
-                        node.children.values(),
-                        key=lambda x: (not x.is_dir, x.name.lower())
-                    )
-
-                    indent = "    " * depth
-
-                    for child in sorted_children:
-                        if filter_query and not child.matches_filter(filter_query):
-                            continue
-
-                        child_path = "{0}{1}/".format(current_path, child.name) if child.is_dir else child.full_path
-
-                        if child.is_dir:
-                            is_open = child_path in expanded or bool(filter_query)
-                            icon = "▾" if is_open else "▸"
-                            display_str = "{0}{1} 📁 {2}/".format(indent, icon, child.name)
-
-                            line_idx = len(lines)
-                            dir_line_map[str(line_idx)] = child_path
-                            lines.append(display_str)
-
-                            if is_open:
-                                render_node(child, depth + 1, child_path)
-                        else:
-                            info = child.info
-                            sz_str = format_size(info.file_size)
-                            comp_str = format_size(info.compress_size)
-                            dt_str = "%d-%02d-%02d %02d:%02d" % info.date_time[:5]
-
-                            raw_name_col = "{0}  📄 {1}".format(indent, child.name)
-                            visual_name_len = len(raw_name_col) + 1
-                            padding = max(1, NAME_WIDTH - visual_name_len)
-                            padded_name = raw_name_col + (" " * padding)
-
-                            line_idx = len(lines)
-                            line_map[str(line_idx)] = child.full_path
-                            lines.append("{0} {1:>{2}}   {3:>{4}}   {5:<{6}}".format(
-                                padded_name, sz_str, SIZE_WIDTH, comp_str, COMP_WIDTH, dt_str, DATE_WIDTH
-                            ))
-
-                render_node(root)
-                lines.append(double_divider)
-
-            viewport = view.viewport_position()
-            
-            view.set_read_only(False)
-            view.replace(edit, sublime.Region(0, view.size()), "\n".join(lines))
-            view.set_read_only(True)
-            view.set_scratch(True)
-
-            view.settings().set("zip_header_map", header_map)
-            view.settings().set("zip_line_map", line_map)
-            view.settings().set("zip_dir_line_map", dir_line_map)
-
-            active_row = view.settings().get("zip_active_row")
-            if active_row is not None:
-                update_row_highlight(view, active_row)
-            
-            view.set_viewport_position(viewport, False)
-
-        except Exception as e:
-            sublime.error_message("[Rapscallion Tools: Zip] Render failed:\n{0}".format(str(e)))
+        threading.Thread(target=_worker, daemon=True).start()
 
 
 class RapscallionZipOpenInterceptor(sublime_plugin.EventListener):
@@ -241,7 +294,7 @@ class RapscallionZipOpenInterceptor(sublime_plugin.EventListener):
                         if v.id() == target_id and v.is_valid():
                             window.focus_view(v)
                             view.set_scratch(True)
-                            view.close()
+                            sublime.set_timeout(lambda: view.is_valid() and view.close(), 0)
                             return
 
             ACTIVE_ZIP_VIEWS[norm_path] = view.id()
@@ -305,14 +358,14 @@ class RapscallionHandleZipClickCommand(sublime_plugin.TextCommand):
             header_type = header_map[row_str]
             if header_type == "archive":
                 try:
-                    os.startfile(zip_path)
+                    open_with_default_app(zip_path)
                 except Exception as e:
                     sublime.error_message("[Rapscallion Tools: Zip] Could not open archive:\n{0}".format(str(e)))
             elif header_type == "path":
                 parent_dir = os.path.dirname(zip_path)
                 if os.path.isdir(parent_dir):
                     try:
-                        os.startfile(parent_dir)
+                        open_with_default_app(parent_dir)
                     except Exception as e:
                         sublime.error_message("[Rapscallion Tools: Zip] Could not open folder:\n{0}".format(str(e)))
             return
@@ -356,17 +409,33 @@ def safe_extract_and_open(window, zip_path, file_path):
     if not zip_path or not os.path.exists(zip_path) or not file_path:
         return
 
-    temp_dir = os.path.abspath(os.path.join(tempfile.gettempdir(), "RapscallionTools_ZipCache"))
+    archive_hash = hashlib.sha1(normalize_path(zip_path).encode("utf-8")).hexdigest()[:12]
+    temp_dir = os.path.abspath(os.path.join(get_cache_root(), archive_hash))
     target_abs = os.path.abspath(os.path.join(temp_dir, file_path))
-    if not target_abs.startswith(temp_dir + os.sep):
-        sublime.error_message(f"[Rapscallion Tools: Zip] Path traversal detected in archive entry:\n{file_path}")
+    try:
+        is_safe = os.path.commonpath([temp_dir, target_abs]) == temp_dir and target_abs != temp_dir
+    except ValueError:
+        is_safe = False
+
+    if not is_safe:
+        sublime.error_message("[Rapscallion Tools: Zip] Path traversal detected in archive entry:\n{0}".format(file_path))
         return
 
-    os.makedirs(temp_dir, exist_ok=True)
+    max_mb = get_setting("max_extract_size_mb", 100)
+    max_bytes = int(max_mb) * 1024 * 1024 if max_mb and max_mb > 0 else 0
 
     def _worker():
         try:
+            os.makedirs(temp_dir, exist_ok=True)
             with zipfile.ZipFile(zip_path, 'r') as zf:
+                if max_bytes:
+                    info = zf.getinfo(file_path)
+                    if info.file_size > max_bytes:
+                        msg = "[Rapscallion Tools: Zip] File exceeds max_extract_size_mb ({0} MB): {1} ({2})".format(
+                            max_mb, file_path, format_size(info.file_size)
+                        )
+                        sublime.set_timeout(lambda: sublime.error_message(msg), 0)
+                        return
                 extracted_path = zf.extract(file_path, path=temp_dir)
 
             def _open():
@@ -375,9 +444,13 @@ def safe_extract_and_open(window, zip_path, file_path):
 
             sublime.set_timeout(_open, 0)
         except Exception as e:
-            sublime.set_timeout(lambda: sublime.error_message(f"[Rapscallion Tools: Zip] Failed to extract item:\n{e}"), 0)
+            err_msg = str(e)
+            sublime.set_timeout(
+                lambda: sublime.error_message("[Rapscallion Tools: Zip] Failed to extract item:\n{0}".format(err_msg)),
+                0,
+            )
 
-    sublime.set_timeout_async(_worker, 0)
+    threading.Thread(target=_worker, daemon=True).start()
 
 
 class RapscallionActivateZipItemCommand(sublime_plugin.TextCommand):
@@ -415,3 +488,108 @@ class RapscallionActivateZipItemCommand(sublime_plugin.TextCommand):
         elif target_file and zip_path:
             window = view.window() or sublime.active_window()
             safe_extract_and_open(window, zip_path, target_file)
+
+
+class RapscallionFilterZipCommand(sublime_plugin.WindowCommand):
+    def is_enabled(self):
+        view = self.window.active_view()
+        return bool(view and view.settings().get("is_rapscallion_zip_view"))
+
+    def run(self):
+        view = self.window.active_view()
+        if not view or not view.settings().get("is_rapscallion_zip_view"):
+            return
+
+        current_query = view.settings().get("zip_filter_query", "")
+
+        def _on_done(query):
+            if view.is_valid():
+                view.settings().set("zip_filter_query", query.strip())
+                view.run_command("rapscallion_render_zip_tree")
+
+        self.window.show_input_panel("Filter Archive:", current_query, _on_done, None, None)
+
+
+class RapscallionClearZipCacheCommand(sublime_plugin.ApplicationCommand):
+    def run(self):
+        cache_root = get_cache_root()
+
+        def _worker():
+            try:
+                if os.path.exists(cache_root):
+                    shutil.rmtree(cache_root)
+                sublime.set_timeout(
+                    lambda: sublime.status_message("[Rapscallion Tools: Zip] Extracted cache cleared."),
+                    0,
+                )
+            except Exception as e:
+                err_msg = str(e)
+                sublime.set_timeout(
+                    lambda: sublime.error_message("[Rapscallion Tools: Zip] Failed to clear cache:\n{0}".format(err_msg)),
+                    0,
+                )
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+
+class RapscallionExtractZipCommand(sublime_plugin.WindowCommand):
+    ARCHIVE_EXTS = (".zip", ".jar", ".war", ".nupkg")
+
+    def _archive_files(self, files):
+        return [
+            f for f in (files or [])
+            if os.path.isfile(f) and os.path.splitext(f)[1].lower() in self.ARCHIVE_EXTS
+        ]
+
+    def is_visible(self, files=None):
+        return len(self._archive_files(files)) > 0
+
+    def run(self, files=None):
+        targets = self._archive_files(files)
+        if not targets:
+            view = self.window.active_view()
+            if view and view.settings().get("is_rapscallion_zip_view"):
+                zp = view.settings().get("zip_archive_path")
+                if zp and os.path.isfile(zp):
+                    targets = [zp]
+        if not targets:
+            return
+
+        def _worker():
+            extracted_count = 0
+            for zip_path in targets:
+                try:
+                    base_name = os.path.splitext(os.path.basename(zip_path))[0]
+                    dest_dir = os.path.abspath(os.path.join(os.path.dirname(zip_path), base_name))
+                    os.makedirs(dest_dir, exist_ok=True)
+                    with zipfile.ZipFile(zip_path, 'r') as zf:
+                        for info in zf.infolist():
+                            target_abs = os.path.abspath(os.path.join(dest_dir, info.filename))
+                            try:
+                                safe = os.path.commonpath([dest_dir, target_abs]) == dest_dir
+                            except ValueError:
+                                safe = False
+                            if not safe:
+                                raise ValueError("Path traversal detected: {0}".format(info.filename))
+                        zf.extractall(dest_dir)
+                    extracted_count += 1
+                except Exception as e:
+                    err_msg = str(e)
+                    sublime.set_timeout(
+                        lambda: sublime.error_message(
+                            "[Rapscallion Tools: Zip] Extraction failed for {0}:\n{1}".format(
+                                os.path.basename(zip_path), err_msg
+                            )
+                        ),
+                        0,
+                    )
+                    return
+
+            sublime.set_timeout(
+                lambda: sublime.status_message(
+                    "[Rapscallion Tools: Zip] Extracted {0} archive(s).".format(extracted_count)
+                ),
+                0,
+            )
+
+        threading.Thread(target=_worker, daemon=True).start()

@@ -1,0 +1,23 @@
+[
+    // =========================================================================
+    // Rapscallion Markdown: Key Chords (Prefix: Ctrl+Alt+M)
+    // =========================================================================
+
+    // Toggle Side Panel Preview (HtmlSheet): Ctrl+Alt+M, P
+    {
+        "keys": ["ctrl+alt+m", "p"],
+        "command": "rapscallion_markdown_toggle_preview"
+    },
+
+    // Open Live Browser Preview (Localhost SSE): Ctrl+Alt+M, B
+    {
+        "keys": ["ctrl+alt+m", "b"],
+        "command": "rapscallion_markdown_browser_preview"
+    },
+
+    // Stop Live Browser Server: Ctrl+Alt+M, X
+    {
+        "keys": ["ctrl+alt+m", "x"],
+        "command": "rapscallion_markdown_stop_browser_server"
+    }
+]

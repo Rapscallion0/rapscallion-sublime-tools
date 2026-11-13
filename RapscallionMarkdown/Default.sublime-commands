@@ -1,0 +1,30 @@
+[
+    {
+        "caption": "Raps: Markdown - Toggle Side Panel Preview",
+        "command": "rapscallion_markdown_toggle_preview"
+    },
+    {
+        "caption": "Raps: Markdown - Open Live Browser Preview",
+        "command": "rapscallion_markdown_browser_preview"
+    },
+    {
+        "caption": "Raps: Markdown - Stop Live Browser Server",
+        "command": "rapscallion_markdown_stop_browser_server"
+    },
+    {
+        "caption": "Raps: Markdown - Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionMarkdown/RapscallionMarkdown.sublime-settings",
+            "default": "{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "Raps: Markdown - Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/RapscallionMarkdown/Default ($platform).sublime-keymap",
+            "default": "[\n\t$0\n]\n"
+        }
+    }
+]

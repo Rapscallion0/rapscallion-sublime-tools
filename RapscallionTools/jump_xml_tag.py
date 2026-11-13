@@ -2,6 +2,12 @@ import sublime
 import sublime_plugin
 
 class JumpXmlTagCommand(sublime_plugin.TextCommand):
+    def is_enabled(self):
+        sel = self.view.sel()
+        if not sel:
+            return False
+        return self.view.match_selector(sel[0].b, "text.xml, embedding.xml")
+
     def run(self, edit):
         view = self.view
         sel = view.sel()
@@ -9,11 +15,16 @@ class JumpXmlTagCommand(sublime_plugin.TextCommand):
             return
 
         orig_pt = sel[0].b
+        if not view.match_selector(orig_pt, "text.xml, embedding.xml"):
+            sublime.status_message("[RapscallionTools] Jump XML Tag only applies to XML buffers.")
+            return
 
         # Expand selection to cover the surrounding tag/element
         view.run_command("expand_selection", {"to": "tag"})
         view.run_command("expand_selection", {"to": "tag"})
 
+        if not view.sel():
+            return
         region = view.sel()[0]
         sel.clear()
 

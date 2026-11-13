@@ -26,10 +26,16 @@ jobs:
         run: |
           find . -name "*.py" -not -path "./.git/*" -exec python -m py_compile {} +
 
+      - name: Run Unit Tests
+        run: |
+          python -m unittest discover -s RapscallionEWicParser/tests -v
+          python -m unittest discover -s RapscallionSILTools/tests -v
+          python -m unittest discover -s RapscallionMarkdown/tests -v
+
       - name: Build .sublime-package Archives
         run: |
           mkdir -p dist
-          for pkg in RapscallionBookmarks RapscallionEWicParser RapscallionNotes RapscallionSILTools RapscallionSyntax RapscallionTools RapscallionZip; do
+          for pkg in RapscallionBookmarks RapscallionEWicParser RapscallionMarkdown RapscallionNotes RapscallionSILTools RapscallionSyntax RapscallionTools RapscallionZip; do
             if [ -d "$pkg" ]; then
               echo "Packaging $pkg..."
               cd "$pkg"

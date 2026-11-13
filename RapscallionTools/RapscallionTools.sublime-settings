@@ -6,6 +6,9 @@
     // Master toggle for displaying dynamic file metadata in the status bar.
     "show_status_bar_info": true,
 
+    // Prefix status bar values with short labels (e.g. "Enc: UTF-8" vs "UTF-8").
+    "status_bar_use_labels": true,
+
     // Python strftime format used to display timestamps (e.g., last modified).
     // Common specifiers:
     //   %Y = 4-digit year       %m = 2-digit month      %d = 2-digit day
@@ -65,30 +68,6 @@
     //   true  = Switches focus to the open preview card AND re-launches the external app.
     //   false = Only brings the existing preview card into focus without spawning a new app instance.
     "relaunch_if_already_open": false,
-
-    // =========================================================================
-    // Sublime Text Core Behavior Overrides
-    // =========================================================================
-
-    // Controls sidebar single-click tab creation:
-    //   true  = Single-clicking a file spawns an ephemeral/transient tab (italic title).
-    //   false = Requires a double-click to open tabs, preventing accidental background 
-    //           buffer reads or loading spinners when navigating the project tree.
-    "preview_on_click": false,
-
-    // Glob patterns for files Sublime should treat strictly as binary.
-    // Files matching these patterns are excluded from background indexing and 
-    // full-text searches ("Find in Files"), significantly reducing CPU and disk overhead.
-    "binary_file_patterns": [
-        "*.pdf",
-        "*.mp4",
-        "*.mkv",
-        "*.mov",
-        "*.avi",
-        "*.webm",
-        "*.wmv",
-        "*.flv"
-    ],
 
     // =========================================================================
     // Hex Decoder Configuration

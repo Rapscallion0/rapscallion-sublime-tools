@@ -227,6 +227,8 @@ class SilAlignColumnsCommand(sublime_plugin.TextCommand):
             formatted_tokens = []
             for c_idx in range(max_cols):
                 tok = tokens[c_idx] if c_idx < len(tokens) else ""
+                if not is_sil and ("," in tok or '"' in tok):
+                    tok = '"' + tok.replace('"', '""') + '"'
                 w = col_widths[c_idx]
                 formatted_tokens.append(tok.ljust(w))
 

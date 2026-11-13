@@ -146,6 +146,8 @@ def get_panel_ratio(window):
 def save_current_panel_width(window):
     if not get_setting("remember_panel_width", True):
         return
+    if not find_bookmark_sheet(window):
+        return
 
     layout = window.layout()
     cols = layout.get("cols", [0.0, 1.0])
@@ -154,7 +156,8 @@ def save_current_panel_width(window):
 
     side = get_setting("side", "right").lower()
     ratio = (cols[1] - cols[0]) if side == "left" else (cols[2] - cols[1])
-    if 0.08 <= ratio <= 0.80:
+    min_ratio = max(0.05, float(get_setting("min_panel_ratio", 0.12)))
+    if min_ratio <= ratio <= 0.80:
         s = sublime.load_settings(SETTINGS_FILE)
         s.set("panel_width", round(ratio, 4))
         sublime.save_settings(SETTINGS_FILE)
@@ -702,6 +705,8 @@ class RapscallionToggleBookmarkCommand(sublime_plugin.TextCommand):
         root = get_project_root(window)
         stored_path = safe_relpath(file_path, root)
 
+        if not view.sel():
+            return
         sel = view.sel()[0]
         line_region = view.line(sel)
         row, col = view.rowcol(sel.begin())
@@ -770,6 +775,8 @@ class RapscallionSetNamedBookmarkCommand(sublime_plugin.TextCommand):
         root = get_project_root(window)
         stored_path = safe_relpath(file_path, root)
 
+        if not view.sel():
+            return
         sel = view.sel()[0]
         line_region = view.line(sel)
         row, col = view.rowcol(sel.begin())
@@ -848,6 +855,8 @@ class RapscallionNextBookmarkCommand(sublime_plugin.TextCommand):
             sublime.status_message("Rapscallion Bookmarks: No bookmarks in this file.")
             return
 
+        if not view.sel():
+            return
         bookmarks = sorted(data[stored_path], key=lambda x: (x.get("line", 1), x.get("col", 1)))
         curr_line = view.rowcol(view.sel()[0].begin())[0] + 1
 
@@ -879,6 +888,8 @@ class RapscallionPrevBookmarkCommand(sublime_plugin.TextCommand):
             sublime.status_message("Rapscallion Bookmarks: No bookmarks in this file.")
             return
 
+        if not view.sel():
+            return
         bookmarks = sorted(data[stored_path], key=lambda x: (x.get("line", 1), x.get("col", 1)))
         curr_line = view.rowcol(view.sel()[0].begin())[0] + 1
 
@@ -1108,6 +1119,7 @@ class RapscallionJumpBookmarkCommand(sublime_plugin.WindowCommand):
         PENDING_HIGHLIGHTS[target_path] = (int(line), int(col), int(length))
         target_view = window.open_file(f"{target_path}:{line}:{col}", sublime.ENCODED_POSITION)
         if target_view and not target_view.is_loading():
+            PENDING_HIGHLIGHTS.pop(target_path, None)
             flash_and_center_bookmark(target_view, int(line), int(col), int(length))
 
 
@@ -1149,9 +1161,11 @@ class RapscallionRefreshDecorationsCommand(sublime_plugin.TextCommand):
             regions_by_category[cat].append(sublime.Region(pt, pt))
 
         # Register persistent regions per category
+        added_keys = []
         for cat, regions in regions_by_category.items():
             scope, icon, _ = get_category_info(cat)
             key = f"{REGION_KEY_PREFIX}_{cat}" if cat else REGION_KEY_PREFIX
+            added_keys.append(key)
             view.add_regions(
                 key,
                 regions,
@@ -1159,12 +1173,17 @@ class RapscallionRefreshDecorationsCommand(sublime_plugin.TextCommand):
                 icon,
                 sublime.PERSISTENT | sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE
             )
+        view.settings().set("rapscallion_bookmark_region_keys", added_keys)
 
     def _erase_all_regions(self, view):
         categories = get_category_config()
-        view.erase_regions(REGION_KEY_PREFIX)
+        keys = set(view.settings().get("rapscallion_bookmark_region_keys", []))
+        keys.add(REGION_KEY_PREFIX)
         for cat in categories.keys():
-            view.erase_regions(f"{REGION_KEY_PREFIX}_{cat}")
+            keys.add(f"{REGION_KEY_PREFIX}_{cat}")
+        for key in keys:
+            view.erase_regions(key)
+        view.settings().erase("rapscallion_bookmark_region_keys")
 
 
 # ==============================================================================
@@ -1309,11 +1328,14 @@ class RapscallionRenameFromSheetCommand(sublime_plugin.WindowCommand):
             new_name = new_name.strip()
             if not new_name or new_name == current_name:
                 return
-            for b in data[stored_file]:
+            fresh_data = BookmarkStorage.load(window)
+            if stored_file not in fresh_data:
+                return
+            for b in fresh_data[stored_file]:
                 if b.get("line") == line and b.get("col", 1) == col:
                     b["name"] = new_name
                     break
-            BookmarkStorage.save(window, data)
+            BookmarkStorage.save(window, fresh_data)
             refresh_all_bookmark_views(window)
 
         input_view = window.show_input_panel("Rename Bookmark:", current_name, on_done, None, None)
@@ -1380,7 +1402,39 @@ class RapscallionToggleSidePanelCommand(sublime_plugin.WindowCommand):
         html_content = build_panel_html(window)
         sheet = window.new_html_sheet("Bookmarks", html_content, group=panel_group)
         window.settings().set(PANEL_ID_KEY, sheet.id())
+        self._start_panel_watchdog(window)
         window.focus_group(editor_group)
+
+    def _start_panel_watchdog(self, window):
+        def _tick():
+            if not window.is_valid():
+                return
+            has_state = (
+                window.settings().has(PANEL_ID_KEY)
+                or window.settings().has("rapscallion_saved_layout")
+            )
+            if not has_state:
+                return
+            if find_bookmark_sheet(window) is None:
+                if window.num_groups() > 1:
+                    saved = window.settings().get("rapscallion_saved_layout")
+                    window.settings().erase(PANEL_ID_KEY)
+                    if saved and isinstance(saved, dict) and "cols" in saved:
+                        window.set_layout(saved)
+                        window.settings().erase("rapscallion_saved_layout")
+                    else:
+                        window.set_layout({
+                            "cols": [0.0, 1.0],
+                            "rows": [0.0, 1.0],
+                            "cells": [[0, 0, 1, 1]],
+                        })
+                else:
+                    window.settings().erase(PANEL_ID_KEY)
+                    window.settings().erase("rapscallion_saved_layout")
+                return
+            sublime.set_timeout(_tick, 250)
+
+        sublime.set_timeout(_tick, 250)
 
     def _restore_layout(self):
         saved = self.window.settings().get("rapscallion_saved_layout")
@@ -1416,38 +1470,43 @@ class RapscallionBookmarksListener(sublime_plugin.EventListener):
                         window.set_view_index(view, editor_group, len(window.views_in_group(editor_group)))
                         window.focus_group(editor_group)
                         window.focus_view(view)
+                elif window.settings().has(PANEL_ID_KEY) or window.settings().has("rapscallion_saved_layout"):
+                    sublime.set_timeout(lambda: self._check_collapse(window), 0)
 
             self._check_highlights(view)
             view.run_command("rapscallion_refresh_decorations")
         except Exception as e:
             print(f"[RapscallionBookmarks] Error in on_activated: {e}")
 
-    def on_selection_modified(self, view):
-        if not get_setting("status_bar_indicator", True):
-            return
+    def on_selection_modified_async(self, view):
+        try:
+            if not get_setting("status_bar_indicator", True):
+                return
 
-        window = view.window()
-        file_path = view.file_name()
-        if not window or not file_path or not view.sel():
-            view.erase_status("rapscallion_bookmark")
-            return
+            window = view.window()
+            file_path = view.file_name()
+            if not window or not file_path or not view.sel():
+                view.erase_status("rapscallion_bookmark")
+                return
 
-        root = get_project_root(window)
-        stored_path = safe_relpath(file_path, root)
-        data = BookmarkStorage.load(window)
+            root = get_project_root(window)
+            stored_path = safe_relpath(file_path, root)
+            data = BookmarkStorage.load(window)
 
-        if stored_path not in data:
-            view.erase_status("rapscallion_bookmark")
-            return
+            if stored_path not in data:
+                view.erase_status("rapscallion_bookmark")
+                return
 
-        curr_line = view.rowcol(view.sel()[0].begin())[0] + 1
-        found = next((b for b in data[stored_path] if b.get("line") == curr_line), None)
-        if found:
-            cat = found.get("category", "")
-            cat_label = f" [{cat}]" if cat else ""
-            view.set_status("rapscallion_bookmark", f"★ Bookmark: {found.get('name', 'Bookmark')}{cat_label}")
-        else:
-            view.erase_status("rapscallion_bookmark")
+            curr_line = view.rowcol(view.sel()[0].begin())[0] + 1
+            found = next((b for b in data[stored_path] if b.get("line") == curr_line), None)
+            if found:
+                cat = found.get("category", "")
+                cat_label = f" [{cat}]" if cat else ""
+                view.set_status("rapscallion_bookmark", f"★ Bookmark: {found.get('name', 'Bookmark')}{cat_label}")
+            else:
+                view.erase_status("rapscallion_bookmark")
+        except Exception as e:
+            print(f"[RapscallionBookmarks] Error in on_selection_modified_async: {e}")
 
     def on_pre_save(self, view):
         """Dynamic Line-Drift Sync: Updates stored lines from active persistent regions."""
@@ -1466,10 +1525,16 @@ class RapscallionBookmarksListener(sublime_plugin.EventListener):
 
             # Collect all registered persistent bookmark regions from view
             all_regions = []
-            categories = get_category_config()
-            all_regions.extend(view.get_regions(REGION_KEY_PREFIX))
-            for cat in categories.keys():
-                all_regions.extend(view.get_regions(f"{REGION_KEY_PREFIX}_{cat}"))
+            keys = set(view.settings().get("rapscallion_bookmark_region_keys", []))
+            keys.add(REGION_KEY_PREFIX)
+            for cat in get_category_config().keys():
+                keys.add(f"{REGION_KEY_PREFIX}_{cat}")
+            for b in data[stored_path]:
+                b_cat = b.get("category", "")
+                if b_cat:
+                    keys.add(f"{REGION_KEY_PREFIX}_{b_cat}")
+            for key in keys:
+                all_regions.extend(view.get_regions(key))
 
             if not all_regions:
                 return
@@ -1501,57 +1566,60 @@ class RapscallionBookmarksListener(sublime_plugin.EventListener):
 
     def on_hover(self, view, point, hover_zone):
         """Displays mini-HTML popup on gutter icon hover."""
-        if hover_zone != sublime.HOVER_GUTTER or not get_setting("gutter_hover_popup", True):
-            return
+        try:
+            if hover_zone != sublime.HOVER_GUTTER or not get_setting("gutter_hover_popup", True):
+                return
 
-        window = view.window()
-        file_path = view.file_name()
-        if not window or not file_path:
-            return
+            window = view.window()
+            file_path = view.file_name()
+            if not window or not file_path:
+                return
 
-        root = get_project_root(window)
-        stored_path = safe_relpath(file_path, root)
-        data = BookmarkStorage.load(window)
+            root = get_project_root(window)
+            stored_path = safe_relpath(file_path, root)
+            data = BookmarkStorage.load(window)
 
-        if stored_path not in data:
-            return
+            if stored_path not in data:
+                return
 
-        hover_line = view.rowcol(point)[0] + 1
-        target_b = next((b for b in data[stored_path] if b.get("line") == hover_line), None)
-        if not target_b:
-            return
+            hover_line = view.rowcol(point)[0] + 1
+            target_b = next((b for b in data[stored_path] if b.get("line") == hover_line), None)
+            if not target_b:
+                return
 
-        b_name = html.escape(target_b.get("name", "Bookmark"))
-        b_cat = target_b.get("category", "")
-        b_line = target_b.get("line", hover_line)
-        b_col = target_b.get("col", 1)
-        b_len = target_b.get("len", 0)
-        b_prev = html.escape(target_b.get("preview", ""))
+            b_name = html.escape(target_b.get("name", "Bookmark"))
+            b_cat = target_b.get("category", "")
+            b_line = target_b.get("line", hover_line)
+            b_col = target_b.get("col", 1)
+            b_len = target_b.get("len", 0)
+            b_prev = html.escape(target_b.get("preview", ""))
 
-        tag_badge = f'<span style="color: #c678dd; font-weight: bold;">[{html.escape(b_cat)}] </span>' if b_cat else ""
+            tag_badge = f'<span style="color: #c678dd; font-weight: bold;">[{html.escape(b_cat)}] </span>' if b_cat else ""
 
-        jump_args = html.escape(json.dumps({"stored_file": stored_path, "line": b_line, "col": b_col, "length": b_len}))
-        del_args = html.escape(json.dumps({"stored_file": stored_path, "line": b_line, "col": b_col}))
-        rename_args = html.escape(json.dumps({"stored_file": stored_path, "line": b_line, "col": b_col}))
+            jump_args = html.escape(json.dumps({"stored_file": stored_path, "line": b_line, "col": b_col, "length": b_len}))
+            del_args = html.escape(json.dumps({"stored_file": stored_path, "line": b_line, "col": b_col}))
+            rename_args = html.escape(json.dumps({"stored_file": stored_path, "line": b_line, "col": b_col}))
 
-        popup_html = f"""
-        <body id="rapscallion-hover-popup" style="margin: 0; padding: 6px 10px; font-family: sans-serif; font-size: 11px;">
-            <div style="font-weight: bold; margin-bottom: 3px;">★ {tag_badge}{b_name} <span style="color: #7f848e; font-weight: normal;">(L:{b_line})</span></div>
-            <div style="color: #98c379; font-family: monospace; margin-bottom: 6px;">{b_prev[:70]}</div>
-            <div>
-                <a style="color: #61afef; text-decoration: none;" href="subl:rapscallion_jump_bookmark {jump_args}">Jump</a> &nbsp;|&nbsp;
-                <a style="color: #e5c07b; text-decoration: none;" href="subl:rapscallion_rename_from_sheet {rename_args}">Rename</a> &nbsp;|&nbsp;
-                <a style="color: #e06c75; text-decoration: none;" href="subl:rapscallion_delete_from_sheet {del_args}">Delete</a>
-            </div>
-        </body>
-        """
+            popup_html = f"""
+            <body id="rapscallion-hover-popup" style="margin: 0; padding: 6px 10px; font-family: sans-serif; font-size: 11px;">
+                <div style="font-weight: bold; margin-bottom: 3px;">★ {tag_badge}{b_name} <span style="color: #7f848e; font-weight: normal;">(L:{b_line})</span></div>
+                <div style="color: #98c379; font-family: monospace; margin-bottom: 6px;">{b_prev[:70]}</div>
+                <div>
+                    <a style="color: #61afef; text-decoration: none;" href="subl:rapscallion_jump_bookmark {jump_args}">Jump</a> &nbsp;|&nbsp;
+                    <a style="color: #e5c07b; text-decoration: none;" href="subl:rapscallion_rename_from_sheet {rename_args}">Rename</a> &nbsp;|&nbsp;
+                    <a style="color: #e06c75; text-decoration: none;" href="subl:rapscallion_delete_from_sheet {del_args}">Delete</a>
+                </div>
+            </body>
+            """
 
-        view.show_popup(
-            popup_html,
-            flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
-            location=point,
-            max_width=500
-        )
+            view.show_popup(
+                popup_html,
+                flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                location=point,
+                max_width=500
+            )
+        except Exception as e:
+            print(f"[RapscallionBookmarks] Error in on_hover: {e}")
 
     def on_pre_close(self, view):
         try:
@@ -1563,11 +1631,31 @@ class RapscallionBookmarksListener(sublime_plugin.EventListener):
         except Exception as e:
             print(f"[RapscallionBookmarks] Error in on_pre_close: {e}")
 
+    def on_window_command(self, window, command_name, args):
+        try:
+            if command_name in ("close", "close_by_index", "close_sheet", "close_file"):
+                if window.settings().has(PANEL_ID_KEY) or window.settings().has("rapscallion_saved_layout"):
+                    save_current_panel_width(window)
+                    sublime.set_timeout(lambda: self._check_collapse(window), 50)
+        except Exception as e:
+            print(f"[RapscallionBookmarks] Error in on_window_command: {e}")
+        return None
+
+    def on_pre_close_window(self, window):
+        try:
+            COLLAPSED_FILES_BY_WINDOW.pop(window.id(), None)
+        except Exception as e:
+            print(f"[RapscallionBookmarks] Error in on_pre_close_window: {e}")
+
     def _check_collapse(self, window):
         try:
             if not window.is_valid():
                 return
-            if not find_bookmark_sheet(window) and window.num_groups() > 1:
+            has_panel_state = (
+                window.settings().has(PANEL_ID_KEY)
+                or window.settings().has("rapscallion_saved_layout")
+            )
+            if has_panel_state and not find_bookmark_sheet(window) and window.num_groups() > 1:
                 saved = window.settings().get("rapscallion_saved_layout")
                 window.settings().erase(PANEL_ID_KEY)
                 if saved and isinstance(saved, dict) and "cols" in saved:

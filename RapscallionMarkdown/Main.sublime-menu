@@ -1,0 +1,58 @@
+[
+    {
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "id": "preferences",
+        "children": [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "Rapscallion Tools",
+                        "id": "rapscallion-tools",
+                        "children": [
+                            {
+                                "caption": "Markdown",
+                                "children": [
+                                    {
+                                        "caption": "Toggle Side Panel Preview",
+                                        "command": "rapscallion_markdown_toggle_preview"
+                                    },
+                                    {
+                                        "caption": "Open Live Browser Preview",
+                                        "command": "rapscallion_markdown_browser_preview"
+                                    },
+                                    {
+                                        "caption": "Stop Live Browser Server",
+                                        "command": "rapscallion_markdown_stop_browser_server"
+                                    },
+                                    {
+                                        "caption": "-"
+                                    },
+                                    {
+                                        "caption": "Settings",
+                                        "command": "edit_settings",
+                                        "args": {
+                                            "base_file": "${packages}/RapscallionMarkdown/RapscallionMarkdown.sublime-settings",
+                                            "default": "{\n\t$0\n}\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Key Bindings",
+                                        "command": "edit_settings",
+                                        "args": {
+                                            "base_file": "${packages}/RapscallionMarkdown/Default ($platform).sublime-keymap",
+                                            "default": "[\n\t$0\n]\n"
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

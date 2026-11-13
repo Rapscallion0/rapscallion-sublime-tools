@@ -2,9 +2,11 @@ import sublime
 import sublime_plugin
 import os
 import stat
+import html
 import datetime
 
 SETTINGS_FILE = "RapscallionTools.sublime-settings"
+CACHE_TOTAL_LINES = {}
 
 def get_setting(key, default=None):
     return sublime.load_settings(SETTINGS_FILE).get(key, default)
@@ -17,6 +19,13 @@ def plugin_loaded():
     s = sublime.load_settings(SETTINGS_FILE)
     s.clear_on_change("rapscallion_status_bar_reload")
     s.add_on_change("rapscallion_status_bar_reload", on_settings_changed)
+
+def plugin_unloaded():
+    s = sublime.load_settings(SETTINGS_FILE)
+    s.clear_on_change("rapscallion_status_bar_reload")
+    for window in sublime.windows():
+        for view in window.views():
+            view.erase_status("sb_info")
 
 def on_settings_changed():
     enabled = get_setting("show_status_bar_info", True)
@@ -58,7 +67,14 @@ def collect_file_metrics(view):
 
     # Total lines
     if is_item_enabled("total_lines"):
-        total_lines = f"{view.rowcol(view.size())[0] + 1:,}L"
+        vid = view.id()
+        cc = view.change_count()
+        cached = CACHE_TOTAL_LINES.get(vid)
+        if cached and cached[0] == cc:
+            total_lines = cached[1]
+        else:
+            total_lines = f"{view.rowcol(view.size())[0] + 1:,}L"
+            CACHE_TOTAL_LINES[vid] = (cc, total_lines)
         data.append({"key": "Lines", "label": "Total Lines", "val": total_lines, "desc": "Total number of lines in this file"})
 
     # File size
@@ -88,15 +104,15 @@ class RapscallionShowStatusDetailsCommand(sublime_plugin.TextCommand):
             return
 
         rows = "".join(
-            f"<tr><td style='padding: 2px 10px; font-weight: bold; color: var(--yellowish);'>{m['label']}</td>"
-            f"<td style='padding: 2px 10px; font-family: monospace; color: var(--foreground);'>{m['val']}</td>"
-            f"<td style='padding: 2px 10px; color: var(--bluish); font-size: 0.9em;'>{m['desc']}</td></tr>"
+            f"<tr><td style='padding: 2px 10px; font-weight: bold; color: var(--yellowish);'>{html.escape(str(m['label']))}</td>"
+            f"<td style='padding: 2px 10px; font-family: monospace; color: var(--foreground);'>{html.escape(str(m['val']))}</td>"
+            f"<td style='padding: 2px 10px; color: var(--bluish); font-size: 0.9em;'>{html.escape(str(m['desc']))}</td></tr>"
             for m in metrics
         )
 
-        html = f"""
+        popup_html = f"""
         <body id="rapscallion-status-popup" style="padding: 8px; margin: 0; font-family: sans-serif;">
-            <div style="font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid color(var(--foreground) alpha(0.2)); padding-bottom: 4px;">
+            <div style="font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid color-mix(in srgb, var(--foreground) 20%, transparent); padding-bottom: 4px;">
                 File Status Details
             </div>
             <table style="border-collapse: collapse;">
@@ -104,7 +120,7 @@ class RapscallionShowStatusDetailsCommand(sublime_plugin.TextCommand):
             </table>
         </body>
         """
-        self.view.show_popup(html, max_width=650, flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY)
+        self.view.show_popup(popup_html, max_width=650, flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY)
 
 class RapscallionToggleStatusBarCommand(sublime_plugin.ApplicationCommand):
     def run(self):
@@ -127,6 +143,9 @@ class RapscallionToggleStatusBarCommand(sublime_plugin.ApplicationCommand):
         return get_setting("show_status_bar_info", True)
 
 class StatusBarInfoListener(sublime_plugin.EventListener):
+    def on_close(self, view):
+        CACHE_TOTAL_LINES.pop(view.id(), None)
+
     def on_activated_async(self, view):
         try:
             self.update_status(view)
@@ -138,6 +157,13 @@ class StatusBarInfoListener(sublime_plugin.EventListener):
             self.update_status(view)
         except Exception as e:
             print(f"[RapscallionTools] Error in status bar on_post_save_async: {e}")
+
+    def on_modified_async(self, view):
+        try:
+            if is_item_enabled("total_lines"):
+                self.update_status(view)
+        except Exception as e:
+            print(f"[RapscallionTools] Error in status bar on_modified_async: {e}")
 
     def update_status(self, view):
         try:

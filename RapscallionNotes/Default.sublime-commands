@@ -1,6 +1,6 @@
 [
     {
-        "caption": "Preferences: Rapscallion Tools - Notes Settings",
+        "caption": "Raps: Notes - Settings",
         "command": "edit_settings",
         "args": {
             "base_file": "${packages}/RapscallionNotes/RapscallionNotes.sublime-settings",
@@ -8,7 +8,7 @@
         }
     },
     {
-        "caption": "Preferences: Rapscallion Tools - Notes Key Bindings",
+        "caption": "Raps: Notes - Key Bindings",
         "command": "edit_settings",
         "args": {
             "base_file": "${packages}/RapscallionNotes/Default ($platform).sublime-keymap",
@@ -16,11 +16,11 @@
         }
     },
     {
-        "caption": "Rapscallion Tools: Notes - Create or Open Ticket Note",
-        "command": "create_ticket_note"
+        "caption": "Raps: Notes - Create or Open Note",
+        "command": "create_note"
     },
     {
-        "caption": "Rapscallion Tools: Notes - Edit Template",
+        "caption": "Raps: Notes - Edit Template",
         "command": "edit_rapscallion_template"
     }
 ]

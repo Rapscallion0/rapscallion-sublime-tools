@@ -14,12 +14,12 @@ contexts:
   main:
     # Comments
     - match: '/\*'
-      scope: comment.block.sq
+      scope: punctuation.definition.comment.begin.sq
       push:
+        - meta_scope: comment.block.sq
         - match: '\*/'
+          scope: punctuation.definition.comment.end.sq
           pop: true
-        - match: '.'
-          scope: comment.block.sq
 
     # Global macro rules so they match inside SQL blocks and anywhere else
     - include: macros
@@ -28,6 +28,9 @@ contexts:
     - match: "'"
       scope: punctuation.definition.string.begin.sq
       push:
+        - meta_scope: string.quoted.single.sq
+        - match: "''"
+          scope: constant.character.escape.sq
         - match: "'"
           scope: punctuation.definition.string.end.sq
           pop: true
@@ -37,7 +40,8 @@ contexts:
       scope: keyword.control.sql.sq
       push:
         - meta_scope: meta.embedded.block.sql.sq
-        - match: '\bEND\b'
+        - match: '(?i)\bEND\b'
+          scope: keyword.control.sql.sq
           pop: true
         - include: embedded-sql
 
@@ -73,7 +77,7 @@ contexts:
       scope: punctuation.accessor.sq
 
     # Wizard Control Directives
-    - match: '(?i)(?:[Ž®娠庫圃容差])?@(WIZRPL|WIZSET|WIZINIT|WIZTARGET|WIZDISPLAY|MAP_DEPLOY|CMD_DEPLOY|MAC_DEPLOY|EXEC|WIZFIL|WIZMENU|WIZCLR|DBVIEW|IMPORT_SIL|import_sil)\b'
+    - match: '(?i)(?:[Ž®娠庫圃容差])?@(WIZRPL|WIZSET|WIZINIT|WIZTARGET|WIZDISPLAY|MAP_DEPLOY|CMD_DEPLOY|MAC_DEPLOY|EXEC|WIZFIL|WIZMENU|WIZCLR|DBVIEW|IMPORT_SIL)\b'
       scope: keyword.control.directive.sq
 
     # Built-in Wizard and Utility Functions
@@ -87,16 +91,19 @@ contexts:
   embedded-sql:
     # Context rules for parsing inside multi-line SQL blocks safely
     - match: '/\*'
-      scope: comment.block.sq
+      scope: punctuation.definition.comment.begin.sq
       push:
+        - meta_scope: comment.block.sq
         - match: '\*/'
+          scope: punctuation.definition.comment.end.sq
           pop: true
-        - match: '.'
-          scope: comment.block.sq
     - include: macros
     - match: "'"
       scope: punctuation.definition.string.begin.sq
       push:
+        - meta_scope: string.quoted.single.sq
+        - match: "''"
+          scope: constant.character.escape.sq
         - match: "'"
           scope: punctuation.definition.string.end.sq
           pop: true

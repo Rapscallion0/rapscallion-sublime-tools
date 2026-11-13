@@ -1,0 +1,22 @@
+[
+    {
+        "button": "button1",
+        "count": 1,
+        "command": "rapscallion_handle_zip_click",
+        "args": { "count": 1 },
+        "context":
+        [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "equal", "operand": true }
+        ]
+    },
+    {
+        "button": "button1",
+        "count": 2,
+        "command": "rapscallion_handle_zip_click",
+        "args": { "count": 2 },
+        "context":
+        [
+            { "key": "setting.is_rapscallion_zip_view", "operator": "equal", "operand": true }
+        ]
+    }
+]

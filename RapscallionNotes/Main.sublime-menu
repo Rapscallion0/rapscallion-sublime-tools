@@ -14,7 +14,7 @@
                         "id": "rapscallion-tools",
                         "children": [
                             {
-                                "caption": "Ticket Notes",
+                                "caption": "Notes & Scratchpad",
                                 "children": [
                                     {
                                         "caption": "Settings",
@@ -33,12 +33,12 @@
                                         }
                                     },
                                     {
-                                        "caption": "Edit Template",
+                                        "caption": "Edit Note Template…",
                                         "command": "edit_rapscallion_template"
                                     },
                                     {
-                                        "caption": "Create or Open Ticket Note",
-                                        "command": "create_ticket_note"
+                                        "caption": "Create or Open Note",
+                                        "command": "create_note"
                                     }
                                 ]
                             }

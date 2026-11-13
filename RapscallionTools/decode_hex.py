@@ -71,11 +71,10 @@ class RapscallionDecodeHexCommand(sublime_plugin.TextCommand):
     - If to_new_tab is False, replaces text in-place with a single undo step.
     """
 
-    def run(self, edit, to_new_tab=False, pattern="brace"):
+    def run(self, edit, to_new_tab=False, pattern=None):
         # Load user configuration override if available
         settings = sublime.load_settings("RapscallionTools.sublime-settings")
-        configured_mode = settings.get("hex_decode_default_pattern", pattern)
-        active_pattern = pattern if pattern != "brace" else configured_mode
+        active_pattern = pattern if pattern is not None else settings.get("hex_decode_default_pattern", "brace")
 
         entire_view_region = sublime.Region(0, self.view.size())
         selections = [r for r in self.view.sel() if not r.empty()]
@@ -93,6 +92,8 @@ class RapscallionDecodeHexCommand(sublime_plugin.TextCommand):
 
             # Open a new scratch buffer tab
             window = self.view.window() or sublime.active_window()
+            if not window:
+                return
             new_view = window.new_file()
             orig_name = self.view.file_name() or self.view.name() or "Buffer"
             new_view.set_name(f"Decoded - {orig_name}")

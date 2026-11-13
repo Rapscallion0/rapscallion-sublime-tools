@@ -4,6 +4,7 @@ Transforms Markdown audit reports into standalone GitHub-styled HTML documents
 with responsive tables, deduction badges, and print styling for web browser viewing.
 """
 
+import html
 import os
 import re
 import tempfile
@@ -314,7 +315,7 @@ def markdown_to_standalone_html(markdown_text: str, title: str = "WIC Audit Repo
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>{title}</title>
+    <title>{html.escape(title)}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {STANDALONE_BROWSER_CSS}
 </head>

@@ -13,6 +13,7 @@ A modular, high-performance productivity suite designed for Sublime Text 4 power
 | **[RapscallionNotes](RapscallionNotes/)** | Instant project scratchpad and Markdown notes editor with custom template engine. | `Ctrl + Alt + N` *(Notes chord)* |
 | **[RapscallionSILTools](RapscallionSILTools/)** | In-memory SQLite query engine and synchronized 10-column rainbow syntax highlighter for SIL database dumps and CSV logs. | `Ctrl + Alt + S` *(SIL chord)*<br>`Alt + Q` / `Alt + F` / `Alt + G` |
 | **[RapscallionEWicParser](RapscallionEWicParser/)** | Buypass/FIS, RBSLynk ISO, & WinEPS E-WIC POS log decoder, multi-state TLV unpacker, APL catalog cross-referencing, and transaction reconciliation. | `Ctrl + Alt + W` *(eWIC chord)* |
+| **[RapscallionMarkdown](RapscallionMarkdown/)** | Zero-dependency live Markdown viewer & editor with theme-aware `minihtml` side panel, localhost SSE browser preview, clickable task checkboxes, and cursor-line highlighting. | `Ctrl + Alt + M` *(Markdown chord)* |
 | **[RapscallionZip](RapscallionZip/)** | Safe, read-only ZIP, JAR, WAR, and NUPKG archive inspector with virtual file navigation. | `Ctrl + Alt + Z` *(Zip chord)* |
 | **[RapscallionSyntax](RapscallionSyntax/)** | Specialized syntax definitions and color schemes, including custom SL4 log highlighting. | Auto-assigned |
 
@@ -37,6 +38,7 @@ rapscallion-sublime-tools/
 │   └── workflows/package.yml     # Automated package builder & release CI
 ├── RapscallionBookmarks/          # Bookmarks engine (Quick Panel, Output Panel, Gutters)
 ├── RapscallionEWicParser/          # E-WIC POS log parser, TLV unpacker & reconciliation engine
+├── RapscallionMarkdown/            # Live Markdown side-panel & SSE browser previewer
 ├── RapscallionNotes/              # Project notes manager & template editor
 ├── RapscallionSILTools/           # SIL SQLite query engine & rainbow syntax
 ├── RapscallionSyntax/             # SL4 log syntax and color schemes

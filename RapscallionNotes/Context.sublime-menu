@@ -9,8 +9,8 @@
                 "id": "rapscallion_notes_submenu",
                 "children": [
                     {
-                        "caption": "Create or Open Ticket Note",
-                        "command": "create_ticket_note"
+                        "caption": "Create or Open Note",
+                        "command": "create_note"
                     },
                     {
                         "caption": "Edit Note Template…",

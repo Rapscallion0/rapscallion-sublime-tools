@@ -1,0 +1,28 @@
+[
+    {
+        "caption": "Rapscallion Tools",
+        "id": "rapscallion_tools_root",
+        "before": "diff",
+        "children": [
+            {
+                "caption": "Markdown",
+                "id": "rapscallion_markdown_submenu",
+                "children": [
+                    {
+                        "caption": "Toggle Side Panel Preview",
+                        "command": "rapscallion_markdown_toggle_preview"
+                    },
+                    {
+                        "caption": "Open Live Browser Preview",
+                        "command": "rapscallion_markdown_browser_preview"
+                    },
+                    {
+                        "caption": "Stop Live Browser Server",
+                        "command": "rapscallion_markdown_stop_browser_server"
+                    }
+                ]
+            }
+        ]
+    },
+    { "caption": "-" }
+]

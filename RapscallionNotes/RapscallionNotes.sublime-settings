@@ -3,23 +3,31 @@
     // Rapscallion Notes Configuration
     // =========================================================================
 
-    // Automatically open or create ticket note when opening a file within matched project paths
+    // Automatically open or create note when opening a file within matched project paths
     "notes_auto_open": true,
 
-    // Subfolder within project root where notes are stored (leave empty for root)
+    // Automatically create/open notes for folders that do NOT match any rule in notes_path_rules
+    "notes_auto_create_outside_rules": false,
+
+    // Default subfolder within project root where notes are stored (leave empty "" for root)
     "notes_subfolder": ".sublime",
 
     // Default note filename fallback
     "notes_default_filename": ".notes.md",
 
+    // Default template used when creating a note outside of configured notes_path_rules
+    "notes_default_template": "# ${folder_name}\nDate Created: ${date} ${time}\nAuthor: ${user}\n\nNotes:\n\n",
+
     // Configured technician name (if blank, detects current OS username)
     "default_tac_name": "",
 
-    // Path matching rules for note creation and custom templates
+    // Path matching rules for custom per-folder templates, filenames, and subfolders
+    // Supports optional keys per rule: "path_prefix", "filename", "subfolder", "template"
     "notes_path_rules": [
         {
             "path_prefix": "D:\\_Calls",
             "filename": ".notes.md",
+            "subfolder": ".sublime",
             "template": "Ticket#: ${ticket_number}\nDate Created: ${date} ${time}\nAssigned TAC: ${tac_name}\nCustomer: \nContact: \n\nNotes:\n\n"
         }
     ]

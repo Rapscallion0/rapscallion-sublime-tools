@@ -80,33 +80,51 @@ def get_column_color(view, col_index):
     return fg_color if fg_color else FALLBACK_COLORS[cycle_idx]
 
 
+def _extract_select_fields(raw_select_cols):
+    raw_cols = raw_select_cols.split(',')
+    fields = [re.sub(r'["\'\[\]\s]', '', f) for f in raw_cols if f.strip()]
+    return fields if fields else None
+
+
 def get_header_fields(view, point=None):
     view_id = view.id()
-    if point is None and view_id in CACHE_HEADERS:
-        return CACHE_HEADERS[view_id]
+    change_count = view.change_count()
+    cached = CACHE_HEADERS.get(view_id)
 
-    all_headers = view.find_all(r'(?is)SELECT\s+([^;]+?)\s+FROM\b')
-    if not all_headers:
+    if cached and cached[0] == change_count:
+        headers_list = cached[1]
+    else:
+        headers_list = []
+        pattern = r'(?is)SELECT\s+([^;]+?)\s+FROM\b'
+        if view.size() <= 2 * 1024 * 1024:
+            for region in view.find_all(pattern):
+                full_match = view.substr(region)
+                match = re.search(r'(?is)SELECT\s+(.*?)\s+FROM\b', full_match)
+                if match:
+                    fields = _extract_select_fields(match.group(1))
+                    if fields:
+                        headers_list.append((region.begin(), fields))
+        else:
+            # Avoid scanning multi-megabyte buffers on the UI/plugin_host thread
+            head_text = view.substr(sublime.Region(0, min(view.size(), 256 * 1024)))
+            for match in re.finditer(pattern, head_text):
+                fields = _extract_select_fields(match.group(1))
+                if fields:
+                    headers_list.append((match.start(), fields))
+
+        CACHE_HEADERS[view_id] = (change_count, headers_list)
+
+    if not headers_list:
         return None
 
-    chosen_region = all_headers[0]
+    chosen_fields = headers_list[0][1]
     if point is not None:
-        preceding = [r for r in all_headers if r.begin() <= point]
-        if preceding:
-            chosen_region = preceding[-1]
-
-    full_match = view.substr(chosen_region)
-    match = re.search(r'(?is)SELECT\s+(.*?)\s+FROM\b', full_match)
-    if not match:
-        return None
-
-    raw_cols = match.group(1).split(',')
-    fields = [re.sub(r'["\'\[\]\s]', '', f) for f in raw_cols if f.strip()]
-    if fields:
-        if len(all_headers) == 1:
-            CACHE_HEADERS[view_id] = fields
-        return fields
-    return None
+        for begin, fields in headers_list:
+            if begin <= point:
+                chosen_fields = fields
+            else:
+                break
+    return chosen_fields
 
 
 def parse_row_at_point(view, point):
@@ -197,48 +215,6 @@ def parse_csv_column_at_point(view, point):
         return None, None
 
 
-class SilFieldHoverListener(sublime_plugin.EventListener):
-    def on_close(self, view):
-        CACHE_HEADERS.pop(view.id(), None)
-
-    def on_post_save(self, view):
-        CACHE_HEADERS.pop(view.id(), None)
-
-    def on_modified(self, view):
-        CACHE_HEADERS.pop(view.id(), None)
-
-    def on_selection_modified_async(self, view):
-        if not is_sil_or_csv_view(view):
-            view.erase_status("sil_col_indicator")
-            return
-
-        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
-        if not settings.get("status_bar_column_info", True):
-            view.erase_status("sil_col_indicator")
-            return
-
-        sel = view.sel()
-        if not sel or len(sel) == 0:
-            view.erase_status("sil_col_indicator")
-            return
-
-        try:
-            pt = sel[0].b
-            col_idx, field_name, _ = parse_row_at_point(view, pt)
-            if col_idx is not None:
-                view.set_status("sil_col_indicator", f"Col {col_idx + 1}: {field_name}")
-            else:
-                tab_name = view.name() or ""
-                file_name = view.file_name() or ""
-                if "Results.csv" in tab_name or file_name.lower().endswith(".csv"):
-                    c_idx, c_name = parse_csv_column_at_point(view, pt)
-                    if c_idx is not None:
-                        view.set_status("sil_col_indicator", f"Col {c_idx + 1}: {c_name}")
-                        return
-                view.erase_status("sil_col_indicator")
-        except (IndexError, Exception):
-            view.erase_status("sil_col_indicator")
-
 def show_field_popup(view, point, col_index, field_name, raw_val):
     """Renders the styled field context card tooltip at the specified point."""
     try:
@@ -273,8 +249,8 @@ def show_field_popup(view, point, col_index, field_name, raw_val):
                 div.card {{
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
                     padding: 5px 9px;
-                    background-color: #21252b;
-                    border: 1px solid #3b4048;
+                    background-color: color-mix(in srgb, var(--background) 94%, var(--foreground));
+                    border: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent);
                     border-radius: 4px;
                     font-size: 11px;
                 }}
@@ -286,7 +262,7 @@ def show_field_popup(view, point, col_index, field_name, raw_val):
                     margin-right: 4px;
                 }}
                 span.field-name {{
-                    color: #c8ccd4;
+                    color: var(--foreground);
                     font-weight: 500;
                 }}
                 div.val {{
@@ -315,6 +291,12 @@ def show_field_popup(view, point, col_index, field_name, raw_val):
 
 class SilFieldHoverListener(sublime_plugin.EventListener):
     def on_close(self, view):
+        CACHE_HEADERS.pop(view.id(), None)
+
+    def on_post_save(self, view):
+        CACHE_HEADERS.pop(view.id(), None)
+
+    def on_modified(self, view):
         CACHE_HEADERS.pop(view.id(), None)
 
     def on_selection_modified_async(self, view):

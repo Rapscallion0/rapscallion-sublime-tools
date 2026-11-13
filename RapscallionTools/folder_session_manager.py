@@ -5,6 +5,7 @@ import json
 
 SESSION_DIR_NAME = ".sublime"
 STATE_FILE_NAME = "folder-session.json"
+CLOSING_WINDOWS = set()
 
 def get_session_file(window):
     folders = window.folders()
@@ -36,8 +37,8 @@ def save_window_state(window):
             os.makedirs(session_dir, exist_ok=True)
         with open(session_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[RapscallionTools] Failed to write session file: {e}")
 
 def restore_window_state(window):
     paths = get_session_file(window)
@@ -50,7 +51,8 @@ def restore_window_state(window):
     try:
         with open(session_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-    except Exception:
+    except Exception as e:
+        print(f"[RapscallionTools] Failed to read session file: {e}")
         return
 
     existing_files = {v.file_name() for v in window.views() if v.file_name()}
@@ -70,7 +72,8 @@ def restore_window_state(window):
                 if selections:
                     v.sel().clear()
                     for sel in selections:
-                        v.sel().add(sublime.Region(sel[0], sel[1]))
+                        if isinstance(sel, (list, tuple)) and len(sel) == 2:
+                            v.sel().add(sublime.Region(int(sel[0]), int(sel[1])))
                 if vp:
                     v.set_viewport_position(tuple(vp), animate=False)
 
@@ -79,26 +82,37 @@ def restore_window_state(window):
 class FolderSessionListener(sublime_plugin.EventListener):
     def on_pre_close_window(self, window):
         try:
+            CLOSING_WINDOWS.add(window.id())
             save_window_state(window)
+            wid = window.id()
+            sublime.set_timeout(lambda: CLOSING_WINDOWS.discard(wid), 2000)
         except Exception as e:
             print(f"[RapscallionTools] Failed to save session on pre_close_window: {e}")
 
     def on_close(self, view):
         try:
             window = view.window() or sublime.active_window()
-            if window:
+            if window and window.id() not in CLOSING_WINDOWS:
                 save_window_state(window)
         except Exception as e:
             print(f"[RapscallionTools] Failed to save session on view close: {e}")
 
+    def _check_restore(self, window):
+        if window and window.is_valid() and not window.settings().get("folder_session_checked", False):
+            window.settings().set("folder_session_checked", True)
+            restore_window_state(window)
+
     def on_load(self, view):
         try:
-            window = view.window()
-            if window and not window.settings().get("folder_session_checked", False):
-                window.settings().set("folder_session_checked", True)
-                restore_window_state(window)
+            self._check_restore(view.window())
         except Exception as e:
             print(f"[RapscallionTools] Failed to restore folder session: {e}")
+
+    def on_new_window(self, window):
+        try:
+            sublime.set_timeout(lambda: self._check_restore(window), 250)
+        except Exception as e:
+            print(f"[RapscallionTools] Failed to schedule folder session restore: {e}")
 
 class RestoreFolderSessionCommand(sublime_plugin.WindowCommand):
     def run(self):

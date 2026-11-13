@@ -11,6 +11,7 @@ Verifies:
 
 import os
 import sys
+import unittest
 
 # Add parent directory to path so package modules can be imported
 PKG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -259,6 +260,9 @@ def test_wineps_audit(apl_db=None):
 
 def test_targeted_audit():
     print("[*] Testing Single-Transaction Targeted Audit (F1032=9486)...")
+    if not os.path.exists(SAMPLE_SLS):
+        print("    [!] Skipping (sample file missing)")
+        return
     with open(SAMPLE_SLS, "r", encoding="latin1") as f:
         lines = f.readlines()
 
@@ -415,22 +419,29 @@ def test_v4_targeted_audit():
     print("    [+] V4 Targeted Audit PASSED")
 
 
+class TestEWicParser(unittest.TestCase):
+    def test_tlv_parsing(self):
+        test_tlv_parsing()
+
+    def test_tlv_parsing_malformed_ea(self):
+        bals, exp, st = parse_tlv_string('dat="EA014142XX500003600"', "NZ")
+        self.assertEqual(bals, {})
+
+    def test_report_destination_resolution(self):
+        test_report_destination_resolution()
+
+    def test_sample_log_audits_when_present(self):
+        apl_db = test_apl_loading() if os.path.exists(SAMPLE_APL) else None
+        test_log_audit(apl_db)
+        test_rbs_audit(apl_db)
+        test_wineps_audit(apl_db)
+        test_targeted_audit()
+        test_buypass_v4_audit(apl_db)
+        test_wineps_v4_audit(apl_db)
+        test_worldpay_v4_audit(apl_db)
+        test_v4_targeted_audit()
+
+
 if __name__ == "__main__":
-    print("==================================================")
-    print("Starting RapscallionEWicParser Test Suite")
-    print("==================================================")
-    test_tlv_parsing()
-    apl_db = test_apl_loading()
-    test_log_audit(apl_db)
-    test_rbs_audit(apl_db)
-    test_wineps_audit(apl_db)
-    test_targeted_audit()
-    test_report_destination_resolution()
-    test_buypass_v4_audit(apl_db)
-    test_wineps_v4_audit(apl_db)
-    test_worldpay_v4_audit(apl_db)
-    test_v4_targeted_audit()
-    print("==================================================")
-    print("ALL TESTS PASSED SUCCESSFULLY!")
-    print("==================================================")
+    unittest.main()
 

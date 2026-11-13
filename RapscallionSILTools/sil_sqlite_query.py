@@ -4,6 +4,8 @@ import sqlite3
 import re
 import csv
 import io
+import os
+import itertools
 import time
 import threading
 
@@ -24,6 +26,16 @@ ACTIVE_COMPLETIONS = {
 
 QUERY_HISTORY = []
 SCRATCHPAD_SESSIONS = {}
+SCRATCHPAD_PHANTOMS = {}
+SCRATCHPAD_PANEL_NAME = "sil_sql_scratchpad"
+
+
+def format_sql_identifier(name):
+    """Returns an unquoted SQL identifier when safe, or double-quoted otherwise."""
+    if name and re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+        return name
+    escaped = str(name).replace('"', '""')
+    return f'"{escaped}"'
 
 PRESET_QUERIES = [
     ("Find Duplicate Values in Column", 'SELECT "{col}", COUNT(*) AS "Count" FROM "{table}" GROUP BY "{col}" HAVING COUNT(*) > 1 ORDER BY "Count" DESC;'),
@@ -262,7 +274,7 @@ class SilProgressIndicator:
         self._animate()
 
     def _animate(self):
-        if not self.is_running:
+        if not self.is_running or not self.view.is_valid():
             return
         frame = self.spinner[self.step % len(self.spinner)]
         self.view.set_status("sil_query_progress", f"{frame} {self.label}...")
@@ -271,7 +283,8 @@ class SilProgressIndicator:
 
     def stop(self, final_msg=""):
         self.is_running = False
-        self.view.erase_status("sil_query_progress")
+        if self.view.is_valid():
+            self.view.erase_status("sil_query_progress")
         if final_msg:
             sublime.status_message(final_msg)
 
@@ -305,34 +318,36 @@ def parse_sil_tuples(chunk, expected_col_count):
             ch = chunk[i]
 
             if in_squote:
-                if ch == "'":
-                    if i + 1 < length and chunk[i + 1] == "'":
-                        current_token.append("'")
-                        i += 2
-                        continue
-                    else:
-                        in_squote = False
-                        i += 1
-                        continue
-                else:
-                    current_token.append(ch)
-                    i += 1
+                next_q = chunk.find("'", i)
+                if next_q == -1:
+                    current_token.append(chunk[i:])
+                    i = length
                     continue
+                if next_q > i:
+                    current_token.append(chunk[i:next_q])
+                if next_q + 1 < length and chunk[next_q + 1] == "'":
+                    current_token.append("'")
+                    i = next_q + 2
+                    continue
+                in_squote = False
+                i = next_q + 1
+                continue
 
             if in_dquote:
-                if ch == '"':
-                    if i + 1 < length and chunk[i + 1] == '"':
-                        current_token.append('"')
-                        i += 2
-                        continue
-                    else:
-                        in_dquote = False
-                        i += 1
-                        continue
-                else:
-                    current_token.append(ch)
-                    i += 1
+                next_q = chunk.find('"', i)
+                if next_q == -1:
+                    current_token.append(chunk[i:])
+                    i = length
                     continue
+                if next_q > i:
+                    current_token.append(chunk[i:next_q])
+                if next_q + 1 < length and chunk[next_q + 1] == '"':
+                    current_token.append('"')
+                    i = next_q + 2
+                    continue
+                in_dquote = False
+                i = next_q + 1
+                continue
 
             if ch == "'":
                 in_squote = True
@@ -480,8 +495,8 @@ class SilSqliteCompletionListener(sublime_plugin.EventListener):
             if pt == 0:
                 return
 
-            text_before = view.substr(sublime.Region(0, pt))
-            prev_char = view.substr(pt - 1)
+            text_before = view.substr(sublime.Region(max(0, pt - 5), pt))
+            prev_char = text_before[-1]
 
             should_trigger = (
                 prev_char.isalnum()
@@ -506,11 +521,10 @@ class SilSqliteCompletionListener(sublime_plugin.EventListener):
 
 def ingest_view_data(view, settings, progress=None):
     """Parses active SIL or CSV view and populates an in-memory SQLite database."""
-    full_text = view.substr(sublime.Region(0, view.size()))
     file_name = view.file_name() or ""
     tab_name = view.name() or ""
     syntax = view.settings().get("syntax", "")
-    sample = full_text[:2048].strip()
+    sample = view.substr(sublime.Region(0, min(view.size(), 2048))).strip()
 
     is_sil = (
         "SIL" in syntax
@@ -529,97 +543,250 @@ def ingest_view_data(view, settings, progress=None):
         return None, None, None
 
     conn = sqlite3.connect(":memory:", check_same_thread=False)
+    conn.execute("PRAGMA synchronous = OFF;")
+    conn.execute("PRAGMA temp_store = MEMORY;")
+    conn.execute("PRAGMA cache_size = -64000;")
+    use_disk = bool(
+        file_name
+        and not view.is_dirty()
+        and view.size() > 5 * 1024 * 1024
+        and os.path.isfile(file_name)
+    )
 
-    if is_sil:
-        parsed_tables = _ingest_sil(conn, full_text, settings)
+    if use_disk:
+        with open(file_name, "r", encoding="utf-8", errors="replace") as stream:
+            parsed_tables = _ingest_sil_stream(conn, stream, settings) if is_sil else _ingest_csv_stream(conn, stream, tab_name, settings)
     else:
-        parsed_tables = _ingest_csv(conn, full_text, tab_name, settings)
+        stream = io.StringIO(view.substr(sublime.Region(0, view.size())))
+        parsed_tables = _ingest_sil_stream(conn, stream, settings) if is_sil else _ingest_csv_stream(conn, stream, tab_name, settings)
 
     return conn, parsed_tables, is_sil
 
 
-def _ingest_sil(conn, text, settings):
-    cursor = conn.cursor()
-    parsed = {}
+def extract_headers_fast(view):
+    """Quickly extracts table name and column headers from the head of a SIL or CSV view."""
+    syntax = view.settings().get("syntax", "")
+    file_name = view.file_name() or ""
+    tab_name = view.name() or ""
 
-    view_pattern = re.compile(
-        r'CREATE\s+VIEW\s+(\w+)\s+AS\s+SELECT\s+([^;]+?)\s+FROM',
-        re.IGNORECASE
+    head_size = min(view.size(), 262144)
+    head_text = view.substr(sublime.Region(0, head_size))
+    sample_upper = head_text[:2048].strip().upper()
+
+    is_sil = (
+        "SIL" in syntax
+        or file_name.lower().endswith(".sil")
+        or sample_upper.startswith("@CREATE(")
+        or "CREATE VIEW" in sample_upper
+    )
+    is_csv = (
+        "CSV" in syntax
+        or file_name.lower().endswith(".csv")
+        or "Results.csv" in tab_name
+        or "Results.md" in tab_name
     )
 
-    for match in view_pattern.finditer(text):
-        table_name = match.group(1).strip()
-        raw_cols = [c.strip().upper() for c in match.group(2).split(',') if c.strip()]
+    if not is_sil and not is_csv:
+        return None
 
-        values_idx = text.upper().find("VALUES", match.end())
-        if values_idx == -1:
-            continue
+    if is_sil:
+        view_pattern = re.compile(
+            r'CREATE\s+VIEW\s+(\w+)\s+AS\s+SELECT\s+([^;]+?)\s+FROM\b',
+            re.IGNORECASE
+        )
+        parsed = {}
+        for m in view_pattern.finditer(head_text):
+            tname = m.group(1).strip()
+            cols = [c.strip().strip("\"'[]").upper() for c in m.group(2).split(",") if c.strip()]
+            if tname and cols and tname not in parsed:
+                parsed[tname] = cols
+        return parsed or None
 
-        blob_start = text.find("(", values_idx)
-        if blob_start == -1:
-            continue
+    # CSV fast header
+    first_nl = head_text.find("\n")
+    first_line = head_text[:first_nl] if first_nl != -1 else head_text
+    header = next(csv.reader([first_line]), None)
+    if not header:
+        return None
 
-        subsequent_directive = re.search(r'[\r\n]+\s*(@|CREATE\s+VIEW)', text[blob_start:], re.IGNORECASE)
-        if subsequent_directive:
-            chunk = text[blob_start : blob_start + subsequent_directive.start()]
-        else:
-            chunk = text[blob_start:]
-
-        parsed_rows = list(parse_sil_tuples(chunk, len(raw_cols)))
-        if not parsed_rows:
-            continue
-
-        sample_size = settings.get("type_inference_sample_size", 100)
-        col_types = infer_column_types(raw_cols, parsed_rows, sample_size) if sample_size > 0 else ["TEXT"] * len(raw_cols)
-
-        cols_def = ", ".join([f'"{c}" {t}' for c, t in zip(raw_cols, col_types)])
-        cursor.execute(f'CREATE TABLE "{table_name}" ({cols_def});')
-
-        placeholders = ", ".join(["?"] * len(raw_cols))
-        insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'
-
-        batch_size = settings.get("ingestion_batch_size", 5000)
-        for i in range(0, len(parsed_rows), batch_size):
-            batch = parsed_rows[i : i + batch_size]
-            converted_batch = []
-            for row in batch:
-                conv_row = []
-                for val, ctype in zip(row, col_types):
-                    if val is None or val == "":
-                        conv_row.append(None)
-                    elif ctype == "INTEGER":
-                        try:
-                            conv_row.append(int(val))
-                        except ValueError:
-                            conv_row.append(val)
-                    elif ctype == "REAL":
-                        try:
-                            conv_row.append(float(val))
-                        except ValueError:
-                            conv_row.append(val)
-                    else:
-                        conv_row.append(val)
-                converted_batch.append(conv_row)
-            cursor.executemany(insert_sql, converted_batch)
-
-        parsed[table_name] = raw_cols
-
-        multi_behavior = settings.get("multi_table_behavior", "prompt")
-        if multi_behavior == "first":
-            break
-
-    conn.commit()
-    return parsed
-
-
-def _ingest_csv(conn, text, tab_name, settings):
     if "Results." in tab_name:
         base_name = re.sub(r'\s+Results\.(csv|md)$', '', tab_name, flags=re.IGNORECASE).strip()
         table_name = (base_name + "_SUB") if base_name else "DATA"
     else:
         table_name = "DATA"
 
-    reader = csv.reader(io.StringIO(text))
+    seen_counts = {}
+    cols = []
+    for i, h in enumerate(header):
+        raw_name = h.strip().strip('"').strip("'")
+        if not raw_name:
+            raw_name = f"COL_{i + 1}"
+        cleaned = re.sub(r'[^\w]', '_', raw_name)
+        if not cleaned or cleaned[0].isdigit():
+            cleaned = f"COL_{cleaned}"
+        if cleaned in seen_counts:
+            seen_counts[cleaned] += 1
+            final_name = f"{cleaned}_{seen_counts[cleaned]}"
+        else:
+            seen_counts[cleaned] = 1
+            final_name = cleaned
+        cols.append(final_name.upper())
+
+    return {table_name: cols} if cols else None
+
+
+def _convert_row(row, col_types, col_count):
+    row_len = len(row)
+    conv_row = []
+    for idx in range(col_count):
+        val = row[idx] if idx < row_len else None
+        ctype = col_types[idx]
+        if val is None or val == "":
+            conv_row.append(None)
+        elif ctype == "INTEGER":
+            try:
+                conv_row.append(int(val))
+            except ValueError:
+                conv_row.append(val)
+        elif ctype == "REAL":
+            try:
+                conv_row.append(float(val))
+            except ValueError:
+                conv_row.append(val)
+        else:
+            conv_row.append(val)
+    return conv_row
+
+
+def _create_and_populate_table(cursor, table_name, cols, rows_iter, settings):
+    sample_size = settings.get("type_inference_sample_size", 100)
+    peek_count = sample_size if sample_size > 0 else 1
+    sample_rows = list(itertools.islice(rows_iter, peek_count))
+    if not sample_rows:
+        return False
+
+    col_types = infer_column_types(cols, sample_rows, sample_size) if sample_size > 0 else ["TEXT"] * len(cols)
+    cols_def = ", ".join([f'"{c}" {t}' for c, t in zip(cols, col_types)])
+    cursor.execute(f'CREATE TABLE "{table_name}" ({cols_def});')
+
+    placeholders = ", ".join(["?"] * len(cols))
+    insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'
+    batch_size = settings.get("ingestion_batch_size", 5000)
+    col_count = len(cols)
+
+    all_rows = itertools.chain(sample_rows, rows_iter)
+    while True:
+        batch = list(itertools.islice(all_rows, batch_size))
+        if not batch:
+            break
+        converted_batch = [_convert_row(row, col_types, col_count) for row in batch]
+        cursor.executemany(insert_sql, converted_batch)
+
+    return True
+
+
+def _iter_sil_section_rows(initial_tail, text_stream, expected_col_count, pushback):
+    """Streams SIL tuple rows from text_stream until the next directive or EOF."""
+    directive_re = re.compile(r'^\s*(@|CREATE\s+VIEW\b)', re.IGNORECASE)
+    buf = [initial_tail] if initial_tail else []
+    line_count = 0
+
+    for line in text_stream:
+        if directive_re.match(line):
+            pushback.append(line)
+            break
+        buf.append(line)
+        line_count += 1
+        if line_count >= 2000 and line.rstrip().endswith(("),", ");", ")")):
+            yield from parse_sil_tuples("".join(buf), expected_col_count)
+            buf.clear()
+            line_count = 0
+
+    if buf:
+        yield from parse_sil_tuples("".join(buf), expected_col_count)
+
+
+def _ingest_sil_stream(conn, text_stream, settings):
+    cursor = conn.cursor()
+    parsed = {}
+
+    view_pattern = re.compile(
+        r'CREATE\s+VIEW\s+(\w+)\s+AS\s+SELECT\s+([^;]+?)\s+FROM\b',
+        re.IGNORECASE
+    )
+    values_pattern = re.compile(r'\bVALUES\b', re.IGNORECASE)
+    multi_behavior = settings.get("multi_table_behavior", "prompt")
+
+    pushback = []
+    header_buf = []
+
+    def _next_line():
+        if pushback:
+            return pushback.pop(0)
+        return next(text_stream, None)
+
+    while True:
+        line = _next_line()
+        if line is None:
+            break
+
+        if not header_buf and "CREATE" not in line.upper():
+            continue
+
+        header_buf.append(line)
+        header_text = "".join(header_buf)
+        match = view_pattern.search(header_text)
+        if not match:
+            if len(header_buf) > 500:
+                header_buf.clear()
+            continue
+
+        val_match = values_pattern.search(header_text, match.end())
+        if not val_match:
+            continue
+
+        table_name = match.group(1).strip()
+        raw_cols = [c.strip().strip("\"'[]").upper() for c in match.group(2).split(',') if c.strip()]
+        tail = header_text[val_match.end():]
+        header_buf.clear()
+
+        if "(" not in tail:
+            # Scan forward until the opening '(' of the first tuple or a directive
+            pre_buf = [tail]
+            found_paren = False
+            while True:
+                nxt = _next_line()
+                if nxt is None:
+                    break
+                if re.match(r'^\s*(@|CREATE\s+VIEW\b)', nxt, re.IGNORECASE):
+                    pushback.append(nxt)
+                    break
+                pre_buf.append(nxt)
+                if "(" in nxt:
+                    found_paren = True
+                    break
+            if not found_paren:
+                continue
+            tail = "".join(pre_buf)
+
+        rows_iter = _iter_sil_section_rows(tail, text_stream, len(raw_cols), pushback)
+        if _create_and_populate_table(cursor, table_name, raw_cols, rows_iter, settings):
+            parsed[table_name] = raw_cols
+            if multi_behavior == "first":
+                break
+
+    conn.commit()
+    return parsed
+
+
+def _ingest_csv_stream(conn, text_stream, tab_name, settings):
+    if "Results." in tab_name:
+        base_name = re.sub(r'\s+Results\.(csv|md)$', '', tab_name, flags=re.IGNORECASE).strip()
+        table_name = (base_name + "_SUB") if base_name else "DATA"
+    else:
+        table_name = "DATA"
+
+    reader = csv.reader(text_stream)
     header = next(reader, None)
     if not header:
         return {}
@@ -642,44 +809,8 @@ def _ingest_csv(conn, text, tab_name, settings):
             final_name = cleaned
         cols.append(final_name.upper())
 
-    rows = list(reader)
-
-    sample_size = settings.get("type_inference_sample_size", 100)
-    col_types = infer_column_types(cols, rows, sample_size) if sample_size > 0 else ["TEXT"] * len(cols)
-
-    cursor = conn.cursor()
-    cols_def = ", ".join([f'"{c}" {t}' for c, t in zip(cols, col_types)])
-    cursor.execute(f'CREATE TABLE "{table_name}" ({cols_def});')
-
-    placeholders = ", ".join(["?"] * len(cols))
-    insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'
-
-    batch_size = settings.get("ingestion_batch_size", 5000)
-    for i in range(0, len(rows), batch_size):
-        batch = rows[i : i + batch_size]
-        converted_batch = []
-        for r in batch:
-            row_len = len(r)
-            conv_row = []
-            for col_idx in range(len(cols)):
-                val = r[col_idx] if col_idx < row_len else None
-                ctype = col_types[col_idx]
-                if val is None or val == "":
-                    conv_row.append(None)
-                elif ctype == "INTEGER":
-                    try:
-                        conv_row.append(int(val))
-                    except ValueError:
-                        conv_row.append(val)
-                elif ctype == "REAL":
-                    try:
-                        conv_row.append(float(val))
-                    except ValueError:
-                        conv_row.append(val)
-                else:
-                    conv_row.append(val)
-            converted_batch.append(conv_row)
-        cursor.executemany(insert_sql, converted_batch)
+    if not _create_and_populate_table(conn.cursor(), table_name, cols, reader, settings):
+        return {}
 
     conn.commit()
     return {table_name: cols}
@@ -714,12 +845,14 @@ class SilSqliteQueryCommand(sublime_plugin.TextCommand):
         if is_async:
             threading.Thread(
                 target=self._run_ingestion_thread,
-                args=(settings, progress)
+                args=(settings, progress),
+                daemon=True
             ).start()
         else:
             self._run_ingestion_thread(settings, progress)
 
     def _run_ingestion_thread(self, settings, progress):
+        conn = None
         try:
             conn, parsed_tables, _ = ingest_view_data(self.view, settings, progress)
 
@@ -749,8 +882,10 @@ class SilSqliteQueryCommand(sublime_plugin.TextCommand):
                 self._dispatch_query_panel(conn, primary_table, parsed_tables[primary_table])
 
         except Exception as e:
+            self.safe_close(conn)
+            err_msg = str(e)
             sublime.set_timeout(lambda: progress.stop(), 0)
-            sublime.set_timeout(lambda: sublime.error_message(f"Ingestion Failed:\n{e}"), 0)
+            sublime.set_timeout(lambda: sublime.error_message(f"Ingestion Failed:\n{err_msg}"), 0)
 
     def _on_table_selected(self, idx, conn, parsed_tables, table_names):
         if idx == -1:
@@ -768,7 +903,13 @@ class SilSqliteQueryCommand(sublime_plugin.TextCommand):
             initial_query = SilSqliteQueryCommand.last_query
         else:
             template = settings.get("default_query_template", "SELECT * FROM {table}")
-            initial_query = template.replace("{table}", table_name)
+            cols_str = ", ".join(columns) if columns else "*"
+            initial_query = (
+                template
+                .replace("{table}", format_sql_identifier(table_name))
+                .replace("{columns}", cols_str)
+            )
+        initial_query = " ".join(initial_query.split())
 
         def _do_prompt():
             try:
@@ -864,7 +1005,7 @@ class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         view = self.view
-        window = view.window()
+        window = view.window() or sublime.active_window()
         if not window:
             return
 
@@ -891,6 +1032,7 @@ class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
         progress.start()
 
         def _do_analyze():
+            conn = None
             try:
                 conn, parsed_tables, is_sil = ingest_view_data(view, settings, progress)
                 if not parsed_tables:
@@ -914,7 +1056,11 @@ class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
                                 conn.close()
                             return
                         chosen = available_cols[idx]
-                        self._execute_frequency(conn, table_name, chosen)
+                        threading.Thread(
+                            target=self._execute_frequency,
+                            args=(conn, table_name, chosen),
+                            daemon=True
+                        ).start()
 
                     sublime.set_timeout(
                         lambda: window.show_quick_panel(
@@ -925,10 +1071,16 @@ class SilColumnFrequencyCommand(sublime_plugin.TextCommand):
                         0
                     )
             except Exception as e:
+                if conn:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                err_msg = str(e)
                 sublime.set_timeout(lambda: progress.stop(), 0)
-                sublime.set_timeout(lambda: sublime.error_message(f"Frequency Analysis Failed:\n{e}"), 0)
+                sublime.set_timeout(lambda: sublime.error_message(f"Frequency Analysis Failed:\n{err_msg}"), 0)
 
-        threading.Thread(target=_do_analyze).start()
+        threading.Thread(target=_do_analyze, daemon=True).start()
 
     def _execute_frequency(self, conn, table_name, column_name):
         try:
@@ -991,7 +1143,7 @@ class SilGotoColumnCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         view = self.view
-        window = view.window()
+        window = view.window() or sublime.active_window()
         if not window:
             return
 
@@ -1015,10 +1167,10 @@ class SilGotoColumnCommand(sublime_plugin.TextCommand):
                 pass
 
         if not headers:
-            # Fallback search for SELECT ... FROM
-            all_headers = view.find_all(r'(?is)SELECT\s+([^;]+?)\s+FROM\b')
-            if all_headers:
-                txt = view.substr(all_headers[0])
+            # Fallback search for first SELECT ... FROM
+            first_header = view.find(r'(?is)SELECT\s+([^;]+?)\s+FROM\b', 0)
+            if first_header:
+                txt = view.substr(first_header)
                 m = re.search(r'(?is)SELECT\s+(.*?)\s+FROM\b', txt)
                 if m:
                     headers = [re.sub(r'["\'\[\]\s]', '', f) for f in m.group(1).split(',') if f.strip()]
@@ -1035,11 +1187,11 @@ class SilGotoColumnCommand(sublime_plugin.TextCommand):
         target_line = cur_line
         if not spans or (not cur_line_text.lstrip().startswith('(') and len(spans) <= 1):
             # Locate first data row in buffer
-            data_matches = view.find_all(r'^\s*\(')
-            if data_matches:
-                target_line = view.line(data_matches[0].begin())
+            first_data = view.find(r'^\s*\(', 0)
+            if first_data:
+                target_line = view.line(first_data.begin())
                 spans = extract_row_tokens(view.substr(target_line))
-            elif view.rowcol(view.size())[0] > 0:
+            elif view.line(0).end() < view.size():
                 # Second row for CSV
                 target_line = view.line(view.text_point(1, 0))
                 spans = extract_row_tokens(view.substr(target_line))
@@ -1110,15 +1262,90 @@ class SilOpenScratchpadCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         view = self.view
-        window = view.window()
+        window = view.window() or sublime.active_window()
         if not window:
             return
 
+        source_id = view.id()
+        current_cc = view.change_count()
         settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+
+        # Fast-path: extract headers from the head of the buffer (< 50 ms even on 90 MB files)
+        fast_headers = extract_headers_fast(view)
+        existing = SCRATCHPAD_SESSIONS.get(source_id)
+
+        if existing and existing.get("change_count") == current_cc:
+            ready_ev = existing.get("ready_event")
+            if existing.get("conn") is not None or (ready_ev and not ready_ev.is_set()):
+                tables = existing.get("tables") or fast_headers
+                if tables:
+                    self._open_scratchpad_view(window, source_id, tables)
+                    sublime.status_message("Rapscallion Tools: SIL - Reusing cached SQLite session.")
+                    return
+
+        if fast_headers:
+            # Open the scratchpad immediately and pre-warm SQLite in the background
+            if existing and existing.get("conn"):
+                try:
+                    existing["conn"].close()
+                except Exception:
+                    pass
+
+            ready_event = threading.Event()
+            session = {
+                "conn": None,
+                "table_name": list(fast_headers.keys())[0],
+                "tables": fast_headers,
+                "source_view": view,
+                "change_count": current_cc,
+                "ready_event": ready_event,
+                "error": None,
+            }
+            SCRATCHPAD_SESSIONS[source_id] = session
+            self._open_scratchpad_view(window, source_id, fast_headers)
+
+            progress = SilProgressIndicator(view, "Indexing SIL Data in Background")
+            progress.start()
+
+            def _prewarm():
+                conn = None
+                try:
+                    conn, parsed_tables, _ = ingest_view_data(view, settings, progress)
+                    if not parsed_tables:
+                        if conn:
+                            conn.close()
+                        session["error"] = "No valid data found."
+                        sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - No valid data found."), 0)
+                        return
+                    session["conn"] = conn
+                    session["tables"] = parsed_tables
+                    session["table_name"] = list(parsed_tables.keys())[0]
+                    ACTIVE_COMPLETIONS["columns"] = parsed_tables[session["table_name"]]
+                    ACTIVE_COMPLETIONS["table"] = session["table_name"]
+                    ACTIVE_COMPLETIONS["tables"] = list(parsed_tables.keys())
+                    sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - SQLite ready for Ctrl+Enter."), 0)
+                except Exception as e:
+                    if conn:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                    session["error"] = str(e)
+                    err_msg = str(e)
+                    sublime.set_timeout(lambda: progress.stop(), 0)
+                    sublime.set_timeout(lambda: sublime.status_message(f"Rapscallion Tools: SIL - Background ingestion error: {err_msg}"), 0)
+                finally:
+                    ready_event.set()
+
+            threading.Thread(target=_prewarm, daemon=True).start()
+            return
+
+        # Fallback if fast header scan didn't find headers
         progress = SilProgressIndicator(view, "Preparing SQL Scratchpad")
         progress.start()
 
         def _do_open():
+            conn = None
             try:
                 conn, parsed_tables, _ = ingest_view_data(view, settings, progress)
                 if not parsed_tables:
@@ -1127,59 +1354,187 @@ class SilOpenScratchpadCommand(sublime_plugin.TextCommand):
                     sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - No valid data found."), 0)
                     return
 
-                table_name = list(parsed_tables.keys())[0]
-                columns = parsed_tables[table_name]
                 sublime.set_timeout(lambda: progress.stop(), 0)
 
-                source_id = view.id()
-                SCRATCHPAD_SESSIONS[source_id] = {
-                    "conn": conn,
-                    "table_name": table_name,
-                    "tables": parsed_tables,
-                    "source_view": view
-                }
-
-                ACTIVE_COMPLETIONS["columns"] = columns
-                ACTIVE_COMPLETIONS["table"] = table_name
-                ACTIVE_COMPLETIONS["tables"] = list(parsed_tables.keys())
-
-                def _open_view():
-                    scratch = window.new_file()
-                    scratch.set_name(f"[{table_name} Query.sql]")
-                    scratch.set_scratch(True)
-
-                    s_settings = scratch.settings()
-                    s_settings.set("is_sil_scratchpad", True)
-                    s_settings.set("sil_source_view_id", source_id)
-                    s_settings.set("sil_table_name", table_name)
-                    s_settings.set("auto_complete", True)
-                    s_settings.set("auto_complete_commit_on_tab", True)
-
+                old_session = SCRATCHPAD_SESSIONS.get(source_id)
+                if old_session and old_session.get("conn"):
                     try:
-                        scratch.assign_syntax("Packages/SQL/SQL.sublime-syntax")
+                        old_session["conn"].close()
                     except Exception:
                         pass
-
-                    cols_comment = ", ".join(columns[:15]) + ("..." if len(columns) > 15 else "")
-                    initial_sql = (
-                        f"-- Rapscallion SIL SQL Scratchpad\n"
-                        f"-- Press Ctrl+Enter to execute query (or selected SQL)\n"
-                        f"-- Table: {table_name} ({len(columns)} columns)\n"
-                        f"-- Columns: {cols_comment}\n\n"
-                        f"SELECT *\n"
-                        f"FROM \"{table_name}\"\n"
-                        f"LIMIT 100;\n"
-                    )
-
-                    scratch.run_command("append", {"characters": initial_sql})
-                    sublime.status_message(f"Rapscallion Tools: SIL - Opened scratchpad for table '{table_name}'. Press Ctrl+Enter to run.")
-
-                sublime.set_timeout(_open_view, 0)
+                ready_event = threading.Event()
+                ready_event.set()
+                SCRATCHPAD_SESSIONS[source_id] = {
+                    "conn": conn,
+                    "table_name": list(parsed_tables.keys())[0],
+                    "tables": parsed_tables,
+                    "source_view": view,
+                    "change_count": current_cc,
+                    "ready_event": ready_event,
+                    "error": None,
+                }
+                sublime.set_timeout(lambda: self._open_scratchpad_view(window, source_id, parsed_tables), 0)
             except Exception as e:
+                if conn:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                err_msg = str(e)
                 sublime.set_timeout(lambda: progress.stop(), 0)
-                sublime.set_timeout(lambda: sublime.error_message(f"Scratchpad Error:\n{e}"), 0)
+                sublime.set_timeout(lambda: sublime.error_message(f"Scratchpad Error:\n{err_msg}"), 0)
 
-        threading.Thread(target=_do_open).start()
+        threading.Thread(target=_do_open, daemon=True).start()
+
+    def _open_scratchpad_view(self, window, source_id, parsed_tables):
+        table_name = list(parsed_tables.keys())[0]
+        columns = parsed_tables[table_name]
+
+        ACTIVE_COMPLETIONS["columns"] = columns
+        ACTIVE_COMPLETIONS["table"] = table_name
+        ACTIVE_COMPLETIONS["tables"] = list(parsed_tables.keys())
+
+        settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
+        mode = str(settings.get("scratchpad_mode", "panel")).lower()
+
+        cols_comment = ", ".join(columns[:15]) + ("..." if len(columns) > 15 else "")
+        default_sp_tmpl = settings.get("scratchpad_default_query_template", "SELECT *\nFROM {table}\nLIMIT 100;")
+        cols_str = ", ".join(columns) if columns else "*"
+        default_sql = (
+            default_sp_tmpl
+            .replace("{table}", format_sql_identifier(table_name))
+            .replace("{columns}", cols_str)
+        )
+        if not default_sql.endswith("\n"):
+            default_sql += "\n"
+
+        if mode == "panel":
+            initial_sql = (
+                f"\n"
+                f"-- Table: {table_name} ({len(columns)} columns)\n"
+                f"-- Columns: {cols_comment}\n\n"
+                f"{default_sql}"
+            )
+        else:
+            initial_sql = (
+                f"-- Rapscallion SIL SQL Scratchpad\n"
+                f"-- Press Ctrl+Enter to execute query (or selected SQL)\n"
+                f"-- Table: {table_name} ({len(columns)} columns)\n"
+                f"-- Columns: {cols_comment}\n\n"
+                f"{default_sql}"
+            )
+
+        if mode == "panel":
+            panel = window.find_output_panel(SCRATCHPAD_PANEL_NAME)
+            is_same_source = (
+                panel is not None
+                and panel.settings().get("sil_source_view_id") == source_id
+                and panel.size() > 0
+            )
+            if not is_same_source:
+                panel = window.create_output_panel(SCRATCHPAD_PANEL_NAME)
+                panel.set_read_only(False)
+                panel.settings().set("is_sil_scratchpad", True)
+                panel.settings().set("sil_source_view_id", source_id)
+                panel.settings().set("sil_table_name", table_name)
+                panel.settings().set("auto_complete", True)
+                panel.settings().set("auto_complete_commit_on_tab", True)
+                panel.settings().set("gutter", True)
+                panel.settings().set("line_numbers", True)
+                try:
+                    panel.assign_syntax("Packages/SQL/SQL.sublime-syntax")
+                except Exception:
+                    pass
+                panel.run_command("append", {"characters": initial_sql})
+                self._attach_panel_toolbar(window, panel, table_name)
+
+            window.run_command("show_panel", {"panel": f"output.{SCRATCHPAD_PANEL_NAME}"})
+            window.focus_view(panel)
+            sublime.status_message(f"Rapscallion Tools: SIL - Scratchpad panel ready for '{table_name}'. Press Ctrl+Enter to run, Esc to close.")
+            return
+
+        if mode == "split":
+            if window.num_groups() == 1:
+                ratio = float(settings.get("scratchpad_split_ratio", 0.35))
+                ratio = max(0.15, min(0.70, ratio))
+                window.settings().set("sil_scratchpad_saved_layout", window.layout())
+                window.set_layout({
+                    "cols": [0.0, 1.0],
+                    "rows": [0.0, round(1.0 - ratio, 4), 1.0],
+                    "cells": [[0, 0, 1, 1], [0, 1, 1, 2]],
+                })
+            window.focus_group(min(1, window.num_groups() - 1))
+
+        scratch = window.new_file()
+        scratch.set_name(f"[{table_name} Query.sql]")
+        scratch.set_scratch(True)
+
+        s_settings = scratch.settings()
+        s_settings.set("is_sil_scratchpad", True)
+        if mode == "split":
+            s_settings.set("is_sil_split_scratchpad", True)
+        s_settings.set("sil_source_view_id", source_id)
+        s_settings.set("sil_table_name", table_name)
+        s_settings.set("auto_complete", True)
+        s_settings.set("auto_complete_commit_on_tab", True)
+
+        try:
+            scratch.assign_syntax("Packages/SQL/SQL.sublime-syntax")
+        except Exception:
+            pass
+
+        scratch.run_command("append", {"characters": initial_sql})
+        sublime.status_message(f"Rapscallion Tools: SIL - Opened scratchpad for '{table_name}'. Press Ctrl+Enter to run.")
+
+    def _attach_panel_toolbar(self, window, panel, table_name):
+        import html as _html
+        safe_table = _html.escape(table_name)
+        toolbar_html = f"""
+        <body id="sil-scratchpad-bar">
+            <style>
+                div.bar {{
+                    padding: 3px 8px;
+                    background-color: color-mix(in srgb, var(--background) 88%, var(--foreground));
+                    border-bottom: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+                    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+                    font-size: 11px;
+                }}
+                span.title {{
+                    font-weight: bold;
+                    color: var(--foreground);
+                    margin-right: 12px;
+                }}
+                a.btn-run {{
+                    color: var(--bluish);
+                    text-decoration: none;
+                    font-weight: bold;
+                    margin-right: 10px;
+                }}
+                a.btn-close {{
+                    color: var(--redish);
+                    text-decoration: none;
+                    font-weight: bold;
+                }}
+            </style>
+            <div class="bar">
+                <span class="title">SIL SQL Scratchpad ({safe_table})</span>
+                <a class="btn-run" href="action:run">▶ Run (Ctrl+Enter)</a>
+                <a class="btn-close" href="action:close">✕ Close (Esc)</a>
+            </div>
+        </body>
+        """
+
+        def _on_navigate(href):
+            if href == "action:run" and panel.is_valid():
+                panel.run_command("sil_execute_scratchpad")
+            elif href == "action:close" and window.is_valid():
+                window.run_command("hide_panel", {"cancel": True})
+
+        p_set = sublime.PhantomSet(panel, "sil_scratchpad_toolbar")
+        p_set.update([
+            sublime.Phantom(sublime.Region(0, 0), toolbar_html, sublime.LAYOUT_INLINE, _on_navigate)
+        ])
+        SCRATCHPAD_PHANTOMS[panel.id()] = p_set
 
 
 class SilExecuteScratchpadCommand(sublime_plugin.TextCommand):
@@ -1193,7 +1548,7 @@ class SilExecuteScratchpadCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         view = self.view
-        window = view.window()
+        window = view.window() or sublime.active_window()
         if not window:
             return
 
@@ -1222,43 +1577,68 @@ class SilExecuteScratchpadCommand(sublime_plugin.TextCommand):
             return
 
         session = SCRATCHPAD_SESSIONS.get(source_id)
-        conn = session["conn"] if session else None
-
-        is_conn_alive = False
-        if conn:
-            try:
-                conn.execute("SELECT 1")
-                is_conn_alive = True
-            except Exception:
-                is_conn_alive = False
 
         progress = SilProgressIndicator(view, "Executing SQL")
         progress.start()
 
         def _do_execute():
-            nonlocal conn
             try:
+                cur_session = SCRATCHPAD_SESSIONS.get(source_id)
+                if cur_session and cur_session.get("ready_event"):
+                    cur_session["ready_event"].wait()
+
+                conn = cur_session.get("conn") if cur_session else None
+                is_conn_alive = False
+                if conn:
+                    try:
+                        conn.execute("SELECT 1")
+                        is_conn_alive = True
+                    except Exception:
+                        is_conn_alive = False
+
+                # Check if source view was modified since last ingestion
+                source_view = cur_session.get("source_view") if cur_session else None
+                if source_view and source_view.is_valid():
+                    if cur_session and cur_session.get("change_count") != source_view.change_count():
+                        is_conn_alive = False
+
                 if not is_conn_alive:
-                    source_view = None
-                    for w in sublime.windows():
-                        for v in w.views():
-                            if v.id() == source_id:
-                                source_view = v
+                    if not source_view or not source_view.is_valid():
+                        source_view = None
+                        for w in sublime.windows():
+                            for v in w.views():
+                                if v.id() == source_id:
+                                    source_view = v
+                                    break
+                            if source_view:
                                 break
                     if not source_view:
                         sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - Source SIL/CSV file closed."), 0)
                         return
 
+                    if cur_session and cur_session.get("conn"):
+                        try:
+                            cur_session["conn"].close()
+                        except Exception:
+                            pass
+
                     settings = sublime.load_settings("RapscallionSILTools.sublime-settings")
                     conn, parsed_tables, _ = ingest_view_data(source_view, settings, progress)
                     if not parsed_tables:
+                        if conn:
+                            conn.close()
                         sublime.set_timeout(lambda: progress.stop("Rapscallion Tools: SIL - Re-ingestion failed."), 0)
                         return
+                    ready_event = threading.Event()
+                    ready_event.set()
                     SCRATCHPAD_SESSIONS[source_id] = {
                         "conn": conn,
                         "table_name": table_name,
                         "tables": parsed_tables,
-                        "source_view": source_view
+                        "source_view": source_view,
+                        "change_count": source_view.change_count(),
+                        "ready_event": ready_event,
+                        "error": None,
                     }
 
                 record_query_history(query)
@@ -1278,10 +1658,11 @@ class SilExecuteScratchpadCommand(sublime_plugin.TextCommand):
                     0
                 )
             except Exception as e:
+                err_msg = str(e)
                 sublime.set_timeout(lambda: progress.stop(), 0)
-                sublime.set_timeout(lambda: sublime.error_message(f"SQL Execution Error:\n{e}"), 0)
+                sublime.set_timeout(lambda: sublime.error_message(f"SQL Execution Error:\n{err_msg}"), 0)
 
-        threading.Thread(target=_do_execute).start()
+        threading.Thread(target=_do_execute, daemon=True).start()
 
 
 # ==============================================================================
@@ -1299,7 +1680,7 @@ class SilQueryPresetsCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         view = self.view
-        window = view.window()
+        window = view.window() or sublime.active_window()
         if not window:
             return
 
@@ -1308,6 +1689,7 @@ class SilQueryPresetsCommand(sublime_plugin.TextCommand):
         progress.start()
 
         def _do_prepare():
+            conn = None
             try:
                 conn, parsed_tables, _ = ingest_view_data(view, settings, progress)
                 if not parsed_tables:
@@ -1343,7 +1725,11 @@ class SilQueryPresetsCommand(sublime_plugin.TextCommand):
                                     return
                                 chosen_col = available_cols[c_idx]
                                 sql = tmpl.replace("{table}", table_name).replace("{col}", chosen_col)
-                                self._run_query_thread(conn, table_name, sql)
+                                threading.Thread(
+                                    target=self._run_query_thread,
+                                    args=(conn, table_name, sql),
+                                    daemon=True
+                                ).start()
 
                             sublime.set_timeout(
                                 lambda: window.show_quick_panel(
@@ -1355,11 +1741,19 @@ class SilQueryPresetsCommand(sublime_plugin.TextCommand):
                             )
                         else:
                             sql = tmpl.replace("{table}", table_name)
-                            self._run_query_thread(conn, table_name, sql)
+                            threading.Thread(
+                                target=self._run_query_thread,
+                                args=(conn, table_name, sql),
+                                daemon=True
+                            ).start()
                     else:
                         history_idx = idx - len(PRESET_QUERIES)
                         sql = QUERY_HISTORY[history_idx]
-                        self._run_query_thread(conn, table_name, sql)
+                        threading.Thread(
+                            target=self._run_query_thread,
+                            args=(conn, table_name, sql),
+                            daemon=True
+                        ).start()
 
                 sublime.set_timeout(
                     lambda: window.show_quick_panel(
@@ -1369,10 +1763,16 @@ class SilQueryPresetsCommand(sublime_plugin.TextCommand):
                     0
                 )
             except Exception as e:
+                if conn:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                err_msg = str(e)
                 sublime.set_timeout(lambda: progress.stop(), 0)
-                sublime.set_timeout(lambda: sublime.error_message(f"Presets Error:\n{e}"), 0)
+                sublime.set_timeout(lambda: sublime.error_message(f"Presets Error:\n{err_msg}"), 0)
 
-        threading.Thread(target=_do_prepare).start()
+        threading.Thread(target=_do_prepare, daemon=True).start()
 
     def _run_query_thread(self, conn, table_name, sql):
         record_query_history(sql)
@@ -1395,11 +1795,61 @@ class SilQueryPresetsCommand(sublime_plugin.TextCommand):
                     0
                 )
         except Exception as e:
+            err_msg = str(e)
             try:
                 conn.close()
             except Exception:
                 pass
-            sublime.set_timeout(lambda: sublime.error_message(f"Query Execution Error:\n{e}"), 0)
+            sublime.set_timeout(lambda: sublime.error_message(f"Query Execution Error:\n{err_msg}"), 0)
+
+
+class SilScratchpadLifecycleListener(sublime_plugin.EventListener):
+    def on_pre_close(self, view):
+        try:
+            if view.settings().get("is_sil_split_scratchpad"):
+                window = view.window()
+                if window and window.settings().has("sil_scratchpad_saved_layout"):
+                    sublime.set_timeout(lambda: self._check_collapse_split(window), 50)
+        except Exception as e:
+            print(f"[RapscallionSILTools] Error in on_pre_close: {e}")
+
+    def _check_collapse_split(self, window):
+        try:
+            if not window or not window.is_valid():
+                return
+            if not window.settings().has("sil_scratchpad_saved_layout"):
+                return
+            has_split_scratchpad = any(
+                v.settings().get("is_sil_split_scratchpad", False)
+                for v in window.views()
+            )
+            if not has_split_scratchpad and window.num_groups() > 1:
+                # Only collapse if the secondary group is empty
+                if len(window.views_in_group(1)) == 0:
+                    saved = window.settings().get("sil_scratchpad_saved_layout")
+                    window.settings().erase("sil_scratchpad_saved_layout")
+                    if saved and isinstance(saved, dict) and "cols" in saved:
+                        window.set_layout(saved)
+                    else:
+                        window.set_layout({"cols": [0.0, 1.0], "rows": [0.0, 1.0], "cells": [[0, 0, 1, 1]]})
+                else:
+                    window.settings().erase("sil_scratchpad_saved_layout")
+        except Exception as e:
+            print(f"[RapscallionSILTools] Error collapsing split layout: {e}")
+
+    def on_close(self, view):
+        try:
+            vid = view.id()
+            SCRATCHPAD_PHANTOMS.pop(vid, None)
+            if vid in SCRATCHPAD_SESSIONS:
+                session = SCRATCHPAD_SESSIONS.pop(vid, None)
+                if session and session.get("conn"):
+                    try:
+                        session["conn"].close()
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"[RapscallionSILTools] Error in on_close: {e}")
 
 
 # ==============================================================================

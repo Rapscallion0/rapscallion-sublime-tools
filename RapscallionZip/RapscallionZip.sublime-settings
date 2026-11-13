@@ -1,7 +1,11 @@
 {
+    // =========================================================================
+    // Archive Filtering & Extraction Limits
+    // =========================================================================
     "archive_ignored_patterns": [
         "__MACOSX/*",
         "*.DS_Store",
         "Thumbs.db"
-    ]
+    ],
+    "max_extract_size_mb": 100
 }

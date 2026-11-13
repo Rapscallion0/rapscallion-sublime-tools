@@ -6,6 +6,7 @@ This document defines the strict development standards, architectural patterns, 
 - **`RapscallionNotes`** (`c:/Users/KevinSommers/AppData/Roaming/Sublime Text/Packages/RapscallionNotes`) — Automated ticket notes & template editor.
 - **`RapscallionZip`** (`c:/Users/KevinSommers/AppData/Roaming/Sublime Text/Packages/RapscallionZip`) — Interactive archive tree explorer and extractor.
 - **`RapscallionSILTools`** (`c:/Users/KevinSommers/AppData/Roaming/Sublime Text/Packages/RapscallionSILTools`) — SIL data dump parser, field hover, and SQLite query engine.
+- **`RapscallionEWicParser`** (`c:/Users/KevinSommers/AppData/Roaming/Sublime Text/Packages/RapscallionEWicParser`) — E-WIC POS log decoder, TLV unpacker, APL cross-referencing, and reconciliation engine.
 - **`RapscallionSyntax`** (`c:/Users/KevinSommers/AppData/Roaming/Sublime Text/Packages/RapscallionSyntax`) — Domain syntax definitions.
 
 All agents working on these packages must adhere to these guidelines without deviation.
@@ -164,19 +165,19 @@ For custom inspectors, trees, and editors (such as `rapscallion_zip`, `sil_sqlit
   - `JumpXmlTagCommand` ➔ `jump_xml_tag`
 
 ### 4.2 Command Palette Captions (`Default.sublime-commands`)
-Format: `<PackageName>: <Descriptive Action>`
+Format: `Raps: <Tool> - <Descriptive Action>` (including `Raps: <Tool> - Settings` and `Raps: <Tool> - Key Bindings`)
 ```json
 [
     {
-        "caption": "RapscallionTools: Toggle Status Bar Info",
+        "caption": "Raps: Tools - Toggle Status Bar Info",
         "command": "rapscallion_toggle_status_bar"
     },
     {
-        "caption": "SILTools: Query with SQLite",
+        "caption": "Raps: SIL - Query with SQLite",
         "command": "sil_sqlite_query"
     },
     {
-        "caption": "Preferences: RapscallionTools Settings",
+        "caption": "Raps: Tools - Settings",
         "command": "edit_settings",
         "args": {
             "base_file": "${packages}/RapscallionTools/RapscallionTools.sublime-settings",

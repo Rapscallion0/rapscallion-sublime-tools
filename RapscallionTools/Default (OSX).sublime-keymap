@@ -69,7 +69,10 @@
     // Jump to Matching XML Tag: Super+Alt+U, X
     {
         "keys": ["super+alt+u", "x"],
-        "command": "jump_xml_tag"
+        "command": "jump_xml_tag",
+        "context": [
+            { "key": "selector", "operator": "equal", "operand": "text.xml, embedding.xml" }
+        ]
     },
 
     // Jump to First Match: Super+Alt+U, M

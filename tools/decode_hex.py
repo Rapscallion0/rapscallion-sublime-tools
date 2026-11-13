@@ -170,10 +170,6 @@ def main():
         if args.verbose:
             sys.stderr.write(f"Decoded {count} hex character(s) from clipboard.\n")
 
-        if args.clipboard_out or (not args.output and not sys.stdout.isatty()):
-            # If requested or piped
-            pass
-
         if args.clipboard_out:
             set_clipboard(decoded)
             if args.verbose:
@@ -190,6 +186,7 @@ def main():
     if args.files:
         total_files = len(args.files)
         total_replaced = 0
+        output_chunks = []
 
         for file_path in args.files:
             if not os.path.exists(file_path):
@@ -207,16 +204,20 @@ def main():
                     f.write(decoded)
                 if args.verbose:
                     sys.stderr.write(f"[{file_path}] Decoded {count} hex tokens in-place.\n")
-            elif args.output:
-                with open(args.output, "w", encoding="utf-8") as f:
-                    f.write(decoded)
-                if args.verbose:
-                    sys.stderr.write(f"Saved decoded content to {args.output} ({count} tokens).\n")
+            elif args.output or args.clipboard_out:
+                output_chunks.append(decoded)
             else:
                 sys.stdout.write(decoded)
 
-        if args.clipboard_out and 'decoded' in locals():
-            set_clipboard(decoded)
+        if output_chunks:
+            combined = "".join(output_chunks)
+            if args.output:
+                with open(args.output, "w", encoding="utf-8") as f:
+                    f.write(combined)
+                if args.verbose:
+                    sys.stderr.write(f"Saved decoded content to {args.output} ({total_replaced} tokens).\n")
+            if args.clipboard_out:
+                set_clipboard(combined)
 
         if args.verbose:
             sys.stderr.write(f"Total: Processed {total_files} file(s), decoded {total_replaced} hex tokens.\n")

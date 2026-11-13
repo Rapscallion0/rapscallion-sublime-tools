@@ -246,7 +246,7 @@ def parse_tlv_string(
 
         # TAG EA: E-WIC Balance Record
         if tag == "EA":
-            if len(val) == 14:
+            if len(val) == 14 and val[3:6].isdigit() and val[9:14].isdigit():
                 # 14-digit format: 3 state + 3 cat + 3 subcat + 5 balance
                 state_pfx = val[:3]
                 if state_pfx in prefix_to_state:
@@ -259,7 +259,7 @@ def parse_tlv_string(
                 qty = qty_raw / 100.0
                 balances[(cat, subcat)] = qty
 
-            elif len(val) == 13:
+            elif len(val) == 13 and val[2:5].isdigit() and val[8:13].isdigit():
                 # 13-digit format: 2 state + 3 cat + 3 subcat + 5 balance
                 cat_num = int(val[2:5])
                 cat = str(cat_num).zfill(2)
@@ -268,7 +268,7 @@ def parse_tlv_string(
                 qty = qty_raw / 100.0
                 balances[(cat, subcat)] = qty
 
-            elif len(val) == 11:
+            elif len(val) == 11 and val[0:3].isdigit() and val[6:11].isdigit():
                 # 11-digit format: 3 cat + 3 subcat + 5 balance
                 cat_num = int(val[0:3])
                 cat = str(cat_num).zfill(2)

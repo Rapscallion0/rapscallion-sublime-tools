@@ -101,6 +101,15 @@ def browse_for_apl_file() -> Optional[str]:
     return None
 
 
+def _read_view_lines(view: sublime.View) -> list:
+    """Read all lines from a view efficiently, reading from disk for large clean files."""
+    file_name = view.file_name()
+    if file_name and not view.is_dirty() and view.size() > 5 * 1024 * 1024 and os.path.isfile(file_name):
+        with open(file_name, "r", encoding="utf-8", errors="replace") as f:
+            return f.read().splitlines()
+    return view.substr(sublime.Region(0, view.size())).splitlines()
+
+
 class EwicAnalyzeTransactionByIdCommand(sublime_plugin.TextCommand):
     """Filter and audit a single E-WIC transaction by F1032 / PAYINVOICE number."""
 
@@ -137,35 +146,59 @@ class EwicAnalyzeTransactionByIdCommand(sublime_plugin.TextCommand):
         if not window:
             return
 
-        lines = [view.substr(r) for r in view.lines(sublime.Region(0, view.size()))]
+        lines = _read_view_lines(view)
+        log_path = view.file_name() or "Active Buffer"
         def_state = get_plugin_setting("default_state", "NZ")
         pfx_map = get_plugin_setting("state_prefix_map", {})
         lookback = get_plugin_setting("correlation_lookback_lines", 1500)
         show_zeros = get_plugin_setting("show_zero_balance_items", True)
         highlight_ded = get_plugin_setting("highlight_deductions_in_markdown", True)
-
-        scanner = LogAuditScanner(lines, default_state=def_state, state_prefix_map=pfx_map, lookback_limit=lookback)
-        cycles = scanner.scan(target_invoice=target_invoice)
-
-        if not cycles:
-            sublime.error_message(f"E-WIC Transaction matching '{target_invoice}' was not found in the active log buffer.")
-            return
-
-        for c in cycles:
-            c.reconcile(apl_db, show_zeros=show_zeros)
-
         apl_name = apl_db.file_name if apl_db else None
-        bank_name = scanner.bank_name
-        report_md, clip_table = render_markdown_report(
-            cycles,
-            log_path=view.file_name() or "Active Buffer",
-            apl_name=apl_name,
-            show_zeros=show_zeros,
-            highlight_deductions=highlight_ded,
-            bank_name=bank_name
-        )
 
-        display_audit_results(window, f"WIC Audit - Inv {target_invoice}", report_md, clip_table)
+        sublime.status_message(f"Auditing E-WIC transaction '{target_invoice}'...")
+
+        def _worker():
+            try:
+                scanner = LogAuditScanner(lines, default_state=def_state, state_prefix_map=pfx_map, lookback_limit=lookback)
+                cycles = scanner.scan(target_invoice=target_invoice)
+
+                if not cycles:
+                    sublime.set_timeout(
+                        lambda: sublime.error_message(
+                            f"E-WIC Transaction matching '{target_invoice}' was not found in the active log buffer."
+                        ),
+                        0,
+                    )
+                    return
+
+                for c in cycles:
+                    c.reconcile(apl_db, show_zeros=show_zeros)
+
+                bank_name = scanner.bank_name
+                report_md, clip_table = render_markdown_report(
+                    cycles,
+                    log_path=log_path,
+                    apl_name=apl_name,
+                    show_zeros=show_zeros,
+                    highlight_deductions=highlight_ded,
+                    bank_name=bank_name
+                )
+
+                sublime.set_timeout(
+                    lambda: window.is_valid() and display_audit_results(
+                        window, f"WIC Audit - Inv {target_invoice}", report_md, clip_table
+                    ),
+                    0,
+                )
+            except Exception as e:
+                err_msg = str(e)
+                sublime.set_timeout(
+                    lambda: sublime.error_message(f"E-WIC Audit failed:\n{err_msg}"),
+                    0,
+                )
+
+        import threading
+        threading.Thread(target=_worker, daemon=True).start()
 
 
 class EwicAuditLogCommand(sublime_plugin.TextCommand):
@@ -181,36 +214,58 @@ class EwicAuditLogCommand(sublime_plugin.TextCommand):
         if not window:
             return
 
-        lines = [view.substr(r) for r in view.lines(sublime.Region(0, view.size()))]
+        lines = _read_view_lines(view)
+        log_path = view.file_name() or "Active Buffer"
+        file_name = os.path.basename(view.file_name()) if view.file_name() else "Buffer"
         def_state = get_plugin_setting("default_state", "NZ")
         pfx_map = get_plugin_setting("state_prefix_map", {})
         lookback = get_plugin_setting("correlation_lookback_lines", 1500)
         show_zeros = get_plugin_setting("show_zero_balance_items", True)
         highlight_ded = get_plugin_setting("highlight_deductions_in_markdown", True)
-
-        scanner = LogAuditScanner(lines, default_state=def_state, state_prefix_map=pfx_map, lookback_limit=lookback)
-        cycles = scanner.scan()
-
-        if not cycles:
-            sublime.message_dialog("No E-WIC transactions discovered in the active log buffer.")
-            return
-
-        for c in cycles:
-            c.reconcile(apl_db, show_zeros=show_zeros)
-
         apl_name = apl_db.file_name if apl_db else None
-        bank_name = scanner.bank_name
-        file_name = os.path.basename(view.file_name()) if view.file_name() else "Buffer"
-        report_md, clip_table = render_markdown_report(
-            cycles,
-            log_path=view.file_name() or "Active Buffer",
-            apl_name=apl_name,
-            show_zeros=show_zeros,
-            highlight_deductions=highlight_ded,
-            bank_name=bank_name
-        )
 
-        display_audit_results(window, f"WIC Audit - All ({file_name})", report_md, clip_table)
+        sublime.status_message("Auditing E-WIC transactions in log...")
+
+        def _worker():
+            try:
+                scanner = LogAuditScanner(lines, default_state=def_state, state_prefix_map=pfx_map, lookback_limit=lookback)
+                cycles = scanner.scan()
+
+                if not cycles:
+                    sublime.set_timeout(
+                        lambda: sublime.message_dialog("No E-WIC transactions discovered in the active log buffer."),
+                        0,
+                    )
+                    return
+
+                for c in cycles:
+                    c.reconcile(apl_db, show_zeros=show_zeros)
+
+                bank_name = scanner.bank_name
+                report_md, clip_table = render_markdown_report(
+                    cycles,
+                    log_path=log_path,
+                    apl_name=apl_name,
+                    show_zeros=show_zeros,
+                    highlight_deductions=highlight_ded,
+                    bank_name=bank_name
+                )
+
+                sublime.set_timeout(
+                    lambda: window.is_valid() and display_audit_results(
+                        window, f"WIC Audit - All ({file_name})", report_md, clip_table
+                    ),
+                    0,
+                )
+            except Exception as e:
+                err_msg = str(e)
+                sublime.set_timeout(
+                    lambda: sublime.error_message(f"E-WIC Audit failed:\n{err_msg}"),
+                    0,
+                )
+
+        import threading
+        threading.Thread(target=_worker, daemon=True).start()
 
 
 class EwicParseSelectionCommand(sublime_plugin.TextCommand):
@@ -475,7 +530,11 @@ def _browse_and_proceed(window: sublime.Window, callback: Callable[[Optional[APL
         _load_and_proceed(window, selected_path, callback)
     else:
         # User canceled browse, re-prompt or fallback
-        prompt_apl_selection(window.active_view(), callback)
+        active_view = window.active_view()
+        if active_view:
+            prompt_apl_selection(active_view, callback)
+        else:
+            callback(None)
 
 
 def _create_markdown_view(

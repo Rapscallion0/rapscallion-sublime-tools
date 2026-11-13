@@ -1,0 +1,20 @@
+{
+    // =========================================================================
+    // Rapscallion Markdown Configuration
+    // =========================================================================
+
+    // Side of the window for the in-editor minihtml preview ("left" or "right")
+    "preview_panel_side": "right",
+
+    // Width ratio (0.2 to 0.75) of the in-editor preview side panel
+    "preview_panel_width": 0.45,
+
+    // Debounce interval in milliseconds for live preview updates while typing
+    "live_preview_debounce_ms": 150,
+
+    // Automatically scroll the live browser preview to follow your cursor line
+    "browser_sync_scroll": true,
+
+    // Highlight the block/line currently selected in the editor in both previews
+    "highlight_cursor_line": true
+}

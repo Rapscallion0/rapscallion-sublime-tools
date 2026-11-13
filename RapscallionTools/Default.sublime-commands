@@ -1,6 +1,6 @@
 [
     {
-        "caption": "Preferences: Rapscallion Tools Settings",
+        "caption": "Raps: Tools - Settings",
         "command": "edit_settings",
         "args": {
             "base_file": "${packages}/RapscallionTools/RapscallionTools.sublime-settings",
@@ -8,7 +8,7 @@
         }
     },
     {
-        "caption": "Preferences: Rapscallion Tools Key Bindings",
+        "caption": "Raps: Tools - Key Bindings",
         "command": "edit_settings",
         "args": {
             "base_file": "${packages}/RapscallionTools/Default ($platform).sublime-keymap",
@@ -16,31 +16,47 @@
         }
     },
     {
-        "caption": "Rapscallion Tools: Toggle Status Bar Info",
+        "caption": "Raps: Tools - Toggle Status Bar Info",
         "command": "rapscallion_toggle_status_bar"
     },
     {
-        "caption": "Rapscallion Tools: Show Status Bar Info Details",
+        "caption": "Raps: Tools - Show Status Bar Info Details",
         "command": "rapscallion_show_status_details"
     },
     {
-        "caption": "Rapscallion Tools: Decode Hex Characters (In Place)",
+        "caption": "Raps: Tools - Decode Hex Characters (In Place)",
         "command": "rapscallion_decode_hex",
         "args": { "to_new_tab": false, "pattern": "brace" }
     },
     {
-        "caption": "Rapscallion Tools: Decode Hex Characters (To New Tab)",
+        "caption": "Raps: Tools - Decode Hex Characters (To New Tab)",
         "command": "rapscallion_decode_hex",
         "args": { "to_new_tab": true, "pattern": "brace" }
     },
     {
-        "caption": "Rapscallion Tools: Decode Hex Characters (All Formats - In Place)",
+        "caption": "Raps: Tools - Decode Hex Characters (All Formats - In Place)",
         "command": "rapscallion_decode_hex",
         "args": { "to_new_tab": false, "pattern": "all" }
     },
     {
-        "caption": "Rapscallion Tools: Decode Hex Characters (All Formats - To New Tab)",
+        "caption": "Raps: Tools - Decode Hex Characters (All Formats - To New Tab)",
         "command": "rapscallion_decode_hex",
         "args": { "to_new_tab": true, "pattern": "all" }
+    },
+    {
+        "caption": "Raps: Tools - Insert Timestamp",
+        "command": "insert_timestamp"
+    },
+    {
+        "caption": "Raps: Tools - Jump to First Match",
+        "command": "jump_to_first_match"
+    },
+    {
+        "caption": "Raps: Tools - Jump to Matching XML Tag",
+        "command": "jump_xml_tag"
+    },
+    {
+        "caption": "Raps: Tools - Restore Folder Session",
+        "command": "restore_folder_session"
     }
 ]

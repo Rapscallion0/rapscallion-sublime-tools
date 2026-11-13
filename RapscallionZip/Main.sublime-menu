@@ -36,7 +36,7 @@
                                         "caption": "Mouse Bindings",
                                         "command": "edit_settings",
                                         "args": {
-                                            "base_file": "${packages}/RapscallionZip/Default (Windows).sublime-mousemap",
+                                            "base_file": "${packages}/RapscallionZip/Default ($platform).sublime-mousemap",
                                             "default": "[\n    $0\n]\n"
                                         }
                                     }

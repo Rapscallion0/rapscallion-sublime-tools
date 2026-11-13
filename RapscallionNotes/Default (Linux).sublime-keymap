@@ -3,22 +3,21 @@
     // Rapscallion Notes: Key Chords (Prefix: Ctrl+Alt+N)
     // =========================================================================
 
-    // Create or Open Ticket Note: Ctrl+Alt+N, C
+    // Create or Open Note: Ctrl+Alt+N, C
     {
         "keys": ["ctrl+alt+n", "c"],
-        "command": "create_ticket_note"
+        "command": "create_note"
     },
 
-    // Create or Open Ticket Note (Alias): Ctrl+Alt+N, N
+    // Create or Open Note (Alias): Ctrl+Alt+N, N
     {
         "keys": ["ctrl+alt+n", "n"],
-        "command": "create_ticket_note"
+        "command": "create_note"
     },
 
-    // Edit Ticket Note Markdown Template: Ctrl+Alt+N, T
+    // Edit Note Markdown Template: Ctrl+Alt+N, T
     {
         "keys": ["ctrl+alt+n", "t"],
         "command": "edit_rapscallion_template"
     }
 ]
-

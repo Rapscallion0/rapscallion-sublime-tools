@@ -81,7 +81,8 @@ def detect_default_app(file_path):
             if detected and detected.lower() in ("windows", "system", "unknown"):
                 detected = None
         elif sys.platform.startswith("darwin"):
-            script = f'tell application "Finder" to set app_path to application file id (default application of (POSIX file "{file_path}" as alias)) as text\nPOSIX path of app_path'
+            safe_path = file_path.replace("\\", "\\\\").replace('"', '\\"')
+            script = f'tell application "Finder" to set app_path to application file id (default application of (POSIX file "{safe_path}" as alias)) as text\nPOSIX path of app_path'
             out = subprocess.check_output(["osascript", "-e", script], stderr=subprocess.DEVNULL).decode('utf-8', 'ignore').strip()
             if out:
                 app_name = os.path.basename(out.rstrip('/')).replace('.app', '')
@@ -113,7 +114,7 @@ def launch_external(file_path):
 
     try:
         if sys.platform.startswith("win"):
-            subprocess.Popen(["cmd", "/c", "start", "", file_path], shell=True)
+            os.startfile(file_path)
         elif sys.platform.startswith("darwin"):
             subprocess.Popen(["open", file_path])
         else:
@@ -139,12 +140,15 @@ def on_phantom_click(href):
         target_path = urllib.parse.unquote(encoded_path)
         folder = os.path.dirname(target_path)
         if os.path.isdir(folder):
-            if sys.platform.startswith("win"):
-                subprocess.Popen(["explorer", f"/select,{target_path}"])
-            elif sys.platform.startswith("darwin"):
-                subprocess.Popen(["open", "-R", target_path])
-            else:
-                subprocess.Popen(["xdg-open", folder])
+            try:
+                if sys.platform.startswith("win"):
+                    subprocess.Popen(["explorer", f"/select,{target_path}"])
+                elif sys.platform.startswith("darwin"):
+                    subprocess.Popen(["open", "-R", target_path])
+                else:
+                    subprocess.Popen(["xdg-open", folder])
+            except Exception as exc:
+                print(f"[RapscallionTools] Reveal failed: {exc}")
     elif href.startswith("action:copy?path="):
         encoded_path = href.split("?path=", 1)[1]
         target_path = urllib.parse.unquote(encoded_path)
@@ -306,10 +310,12 @@ def build_card_html(file_path, app_name):
     </body>
     """
 
-def spawn_preview_tab(window, file_path):
+def spawn_preview_tab(window, file_path, app_name=None):
+    if not window or not window.is_valid():
+        return
     file_name_only = os.path.basename(file_path)
     norm_path = os.path.abspath(file_path)
-    app_name = detect_default_app(file_path)
+    key = (window.id(), norm_path)
 
     scratch = window.new_file()
     scratch.set_name(f"Preview: {file_name_only}")
@@ -320,7 +326,7 @@ def spawn_preview_tab(window, file_path):
     scratch.settings().set("word_wrap", False)
     scratch.settings().set("rapscallion_bound_path", norm_path)
 
-    ACTIVE_MEDIA_VIEWS[norm_path] = scratch.id()
+    ACTIVE_MEDIA_VIEWS[key] = scratch.id()
 
     html = build_card_html(file_path, app_name)
     p_set = sublime.PhantomSet(scratch, "rapscallion_media_phantom")
@@ -356,9 +362,10 @@ class RapscallionOpenExternalMediaListener(sublime_plugin.EventListener):
             if not window:
                 return
             norm_path = os.path.abspath(file_path)
+            key = (window.id(), norm_path)
 
-            if norm_path in ACTIVE_MEDIA_VIEWS:
-                target_id = ACTIVE_MEDIA_VIEWS[norm_path]
+            if key in ACTIVE_MEDIA_VIEWS:
+                target_id = ACTIVE_MEDIA_VIEWS[key]
                 for v in window.views():
                     if v.id() == target_id and v.is_valid():
                         view.set_scratch(True)
@@ -367,13 +374,17 @@ class RapscallionOpenExternalMediaListener(sublime_plugin.EventListener):
                         if get_setting("relaunch_if_already_open", False):
                             sublime.set_timeout_async(lambda: launch_external(norm_path), 0)
                         return
-                del ACTIVE_MEDIA_VIEWS[norm_path]
+                del ACTIVE_MEDIA_VIEWS[key]
 
             view.set_scratch(True)
             view.close()
 
-            sublime.set_timeout_async(lambda: launch_external(file_path), 0)
-            sublime.set_timeout(lambda: spawn_preview_tab(window, file_path), 20)
+            def _launch_and_spawn():
+                launch_external(file_path)
+                app_name = detect_default_app(file_path)
+                sublime.set_timeout(lambda: spawn_preview_tab(window, file_path, app_name), 0)
+
+            sublime.set_timeout_async(_launch_and_spawn, 0)
         except Exception as e:
             print(f"[RapscallionTools] Error in media preview on_activated: {e}")
 
@@ -384,8 +395,9 @@ class RapscallionOpenExternalMediaListener(sublime_plugin.EventListener):
                 del PERSISTENT_PHANTOMS[vid]
 
             bound_path = view.settings().get("rapscallion_bound_path")
-            if bound_path and bound_path in ACTIVE_MEDIA_VIEWS:
-                del ACTIVE_MEDIA_VIEWS[bound_path]
+            window = view.window()
+            if bound_path and window and (window.id(), bound_path) in ACTIVE_MEDIA_VIEWS:
+                del ACTIVE_MEDIA_VIEWS[(window.id(), bound_path)]
             else:
                 for path, registered_vid in list(ACTIVE_MEDIA_VIEWS.items()):
                     if registered_vid == vid:
